@@ -1,0 +1,9 @@
+name: 'Swift Setup'
+description: 'Setting Swift up.'
+inputs:
+  swift-version:
+    description: 'The version of Swift.'
+    required: true
+runs:
+  using: 'node12'
+  main: 'main.js'
