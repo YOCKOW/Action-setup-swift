@@ -1,0 +1,15 @@
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+    runs-on: ${{ matrix.os }}
+    name: Test to install Swift.
+    steps:
+    - name: Install Swift.
+      uses: YOCKOW/Action-setup-swift@development
+      with:
+        swift-version: '5.0.3'
+    - name: View Swift Version
+      run: swift --version
