@@ -26,4 +26,4 @@ async function main() {
   core.endGroup()
 }
 
-main()
+main().catch(error => { core.setFailed(error.message) })
