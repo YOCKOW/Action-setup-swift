@@ -1,4 +1,4 @@
-name: Install Swift.
+name: CI
 on: [push, pull_request]
 jobs:
   test:
@@ -6,7 +6,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
     runs-on: ${{ matrix.os }}
-    name: Test to install Swift.
+    name: Test of Action-setup-swift
     steps:
     - name: Install Swift.
       uses: YOCKOW/Action-setup-swift@development
@@ -14,3 +14,6 @@ jobs:
         swift-version: '5.1'
     - name: View Swift Version
       run: swift --version
+    - uses: actions/checkout@master
+    - name: Run Swift
+      run: cd swift-package-for-test && swift test
