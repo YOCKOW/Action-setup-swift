@@ -13,5 +13,9 @@
     "@actions/core": "^1.1.3",
     "@actions/exec": "^1.0.1",
     "@actions/github": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^12.7.11",
+    "typescript": "^3.6.3"
   }
 }
