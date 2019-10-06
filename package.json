@@ -1,6 +1,6 @@
 {
   "name": "Action-setup-swift",
-  "version": "1.0.3",
+  "version": "1.0.4-dev",
   "description": "Setting Swift up.",
   "main": "main.js",
   "scripts": {
@@ -13,5 +13,9 @@
     "@actions/core": "^1.1.3",
     "@actions/exec": "^1.0.1",
     "@actions/github": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^12.7.11",
+    "typescript": "^3.6.3"
   }
 }
