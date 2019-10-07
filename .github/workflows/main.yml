@@ -1,5 +1,15 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - '*'
+      - '*/*'
+    tags:
+      - '!*'
+  pull_request:
+    branches:
+      - '*'
+      - '*/*'
 jobs:
   test:
     strategy:
@@ -9,7 +19,7 @@ jobs:
     name: Test of Action-setup-swift
     steps:
     - name: Install Swift.
-      uses: YOCKOW/Action-setup-swift@development-1.0.x
+      uses: YOCKOW/Action-setup-swift@1.0.x/development
       with:
         swift-version: '5.1'
     - name: View Swift Version
