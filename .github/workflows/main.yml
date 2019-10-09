@@ -9,7 +9,7 @@ jobs:
     name: Test of Action-setup-swift
     steps:
     - name: Install Swift.
-      uses: YOCKOW/Action-setup-swift@development-1.0.x
+      uses: YOCKOW/Action-setup-swift@master
       with:
         swift-version: '5.1'
     - name: View Swift Version
