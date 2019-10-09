@@ -1,17 +1,28 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - '*'
+      - '*/*'
+    tags:
+      - '!*'
+  pull_request:
+    branches:
+      - '*'
+      - '*/*'
 jobs:
   test:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest]
+        swift-version: ['5.1', 'DEVELOPMENT-SNAPSHOT-2019-09-30-a']
     runs-on: ${{ matrix.os }}
     name: Test of Action-setup-swift
     steps:
     - name: Install Swift.
-      uses: YOCKOW/Action-setup-swift@master
+      uses: YOCKOW/Action-setup-swift@1.0.x/development
       with:
-        swift-version: '5.1'
+        swift-version: ${{ matrix.swift-version }}
     - name: View Swift Version
       run: swift --version
     - uses: actions/checkout@master
