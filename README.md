@@ -12,9 +12,11 @@ steps:
 - uses: actions/checkout@master
 - uses: YOCKOW/Action-setup-swift@master
   with:
-    swift-version: '5.0.3' # This value is passed to swiftenv without modification. 
+    swift-version: '5.1' # This value is passed to swiftenv without modification. 
 - run: swift --version
 ```
+
+You can see another slightly complex sample in [main.yml](./.github/workflows/main.yml).
 
 
 # License
