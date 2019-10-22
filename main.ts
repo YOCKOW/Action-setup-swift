@@ -41,7 +41,7 @@ async function check_swift(): Promise<boolean> {
 }
 
 async function download_swift(): Promise<void> {
-  await run('Downlod Swift (via swiftenv)...', async () => {
+  await run('Download Swift (via swiftenv)...', async () => {
     await exec.exec(swiftenvPath, ['install', swiftVersion]);
   })
 }
