@@ -43,7 +43,7 @@ async function check_swift() {
     return installed;
 }
 async function download_swift() {
-    await run('Downlod Swift (via swiftenv)...', async () => {
+    await run('Download Swift (via swiftenv)...', async () => {
         await exec.exec(swiftenvPath, ['install', swiftVersion]);
     });
 }
