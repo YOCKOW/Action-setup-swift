@@ -20,7 +20,7 @@ jobs:
     name: Test of Action-setup-swift
     steps:
     - name: Install Swift.
-      uses: YOCKOW/Action-setup-swift@master
+      uses: YOCKOW/Action-setup-swift@1.0.x/development
       with:
         swift-version: ${{ matrix.swift-version }}
     - name: View Swift Version
