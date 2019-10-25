@@ -109,7 +109,7 @@ cat <<__END_OF_YAML_FOR_DIRECT_TEST_02__ >>"${direct_test_path}"
     - name: Install Swift.
       run: node main.js
       env:
-        SWIFT_VERSION: \${{ matrix.swift-version }}
+        INPUT_SWIFT-VERSION: \${{ matrix.swift-version }}
     - name: View Swift Version
       run: swift --version
     - name: Run Swift
