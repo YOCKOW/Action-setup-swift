@@ -1,26 +1,25 @@
-name: CI
+name: "Test for 1.0.x/experiment"
 on:
   push:
     branches:
-      - '*'
-      - '*/*'
+      - '1.0.x/experiment'
     tags:
       - '!*'
-  pull_request:
-    branches:
-      - '*'
-      - '*/*'
 jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest]
-        swift-version: ['5.1', 'DEVELOPMENT-SNAPSHOT-2019-09-30-a']
+        os:
+          - ubuntu-latest
+          - macOS-latest
+        swift-version:
+          - '5.1.1'
+          - 'DEVELOPMENT-SNAPSHOT-2019-10-21-a'
     runs-on: ${{ matrix.os }}
     name: Test of Action-setup-swift
     steps:
     - name: Install Swift.
-      uses: YOCKOW/Action-setup-swift@1.0.x/development
+      uses: YOCKOW/Action-setup-swift@1.0.x/experiment
       with:
         swift-version: ${{ matrix.swift-version }}
     - name: View Swift Version
@@ -28,3 +27,4 @@ jobs:
     - uses: actions/checkout@master
     - name: Run Swift
       run: cd swift-package-for-test && swift test
+

@@ -1,0 +1,50 @@
+#!/bin/sh
+
+declare -r workflows_directory="$(cd $(dirname $0) && pwd)/workflows"
+declare -a branches=("master" "1.0.x/development" "1.0.x/experiment")
+declare -a swift_versions=("5.1.1" "DEVELOPMENT-SNAPSHOT-2019-10-21-a")
+
+for branch in "${branches[@]}"; do
+  declare filename="branch-$(echo ${branch} | sed -e 's/\//-/g').yml"
+  declare path="${workflows_directory}/${filename}"
+  
+  echo "Updating ${path}"
+  
+  cat <<__END_OF_YAML_00_ >"$path"
+name: "Test for ${branch}"
+on:
+  push:
+    branches:
+      - '${branch}'
+    tags:
+      - '!*'
+jobs:
+  test:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macOS-latest
+        swift-version:
+__END_OF_YAML_00_
+
+  for version in "${swift_versions[@]}"; do
+    echo "          - '${version}'" >>"$path"
+  done
+
+  cat <<__END_OF_YAML_01_ >>"$path"
+    runs-on: \${{ matrix.os }}
+    name: Test of Action-setup-swift
+    steps:
+    - name: Install Swift.
+      uses: YOCKOW/Action-setup-swift@${branch}
+      with:
+        swift-version: \${{ matrix.swift-version }}
+    - name: View Swift Version
+      run: swift --version
+    - uses: actions/checkout@master
+    - name: Run Swift
+      run: cd swift-package-for-test && swift test
+
+__END_OF_YAML_01_
+done
