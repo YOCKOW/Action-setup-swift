@@ -1,10 +1,21 @@
-name: "Test for 1.0.x/development"
+name: Direct Test
 on:
   push:
     branches:
-      - '1.0.x/development'
+      - '*'
+      - '*/*'
+      - '!master'
+      - '!1.0.x/development'
+      - '!1.0.x/experiment'
     tags:
       - '!*'
+  pull_request:
+    branches:
+      - '*'
+      - '*/*'
+      - '!master'
+      - '!1.0.x/development'
+      - '!1.0.x/experiment'
 jobs:
   test:
     strategy:
@@ -18,12 +29,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Test of Action-setup-swift
     steps:
-    - name: Install Swift.
-      uses: YOCKOW/Action-setup-swift@1.0.x/development
+    - uses: actions/checkout@master
+    - uses: actions/setup-node@v1
       with:
-        swift-version: ${{ matrix.swift-version }}
+        node-version: '12.x'
+    - name: Install Swift.
+      run: node main.js
+      env:
+        SWIFT_VERSION: ${{ matrix.swift-version }}
     - name: View Swift Version
       run: swift --version
-    - uses: actions/checkout@master
     - name: Run Swift
       run: cd swift-package-for-test && swift test

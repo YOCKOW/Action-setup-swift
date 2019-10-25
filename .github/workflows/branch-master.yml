@@ -27,4 +27,3 @@ jobs:
     - uses: actions/checkout@master
     - name: Run Swift
       run: cd swift-package-for-test && swift test
-

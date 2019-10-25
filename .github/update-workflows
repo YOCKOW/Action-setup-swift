@@ -4,13 +4,14 @@ declare -r workflows_directory="$(cd $(dirname $0) && pwd)/workflows"
 declare -a branches=("master" "1.0.x/development" "1.0.x/experiment")
 declare -a swift_versions=("5.1.1" "DEVELOPMENT-SNAPSHOT-2019-10-21-a")
 
+# YAMLs for each branch.
 for branch in "${branches[@]}"; do
   declare filename="branch-$(echo ${branch} | sed -e 's/\//-/g').yml"
   declare path="${workflows_directory}/${filename}"
   
   echo "Updating ${path}"
   
-  cat <<__END_OF_YAML_00_ >"$path"
+  cat <<__END_OF_YAML_FOR_EACH_BRANCH_00__ >"$path"
 name: "Test for ${branch}"
 on:
   push:
@@ -26,13 +27,13 @@ jobs:
           - ubuntu-latest
           - macOS-latest
         swift-version:
-__END_OF_YAML_00_
+__END_OF_YAML_FOR_EACH_BRANCH_00__
 
   for version in "${swift_versions[@]}"; do
     echo "          - '${version}'" >>"$path"
   done
 
-  cat <<__END_OF_YAML_01_ >>"$path"
+  cat <<__END_OF_YAML_FOR_EACH_BRANCH_01__ >>"$path"
     runs-on: \${{ matrix.os }}
     name: Test of Action-setup-swift
     steps:
@@ -45,6 +46,69 @@ __END_OF_YAML_00_
     - uses: actions/checkout@master
     - name: Run Swift
       run: cd swift-package-for-test && swift test
-
-__END_OF_YAML_01_
+__END_OF_YAML_FOR_EACH_BRANCH_01__
 done
+
+
+# Direct test.
+declare -r direct_test_path="${workflows_directory}/direct-test.yml"
+echo "Updating ${direct_test_path}"
+
+cat <<__END_OF_YAML_FOR_DIRECT_TEST_00__ >"${direct_test_path}"
+name: Direct Test
+on:
+  push:
+    branches:
+      - '*'
+      - '*/*'
+__END_OF_YAML_FOR_DIRECT_TEST_00__
+
+for branch in "${branches[@]}"; do
+  echo "      - '!${branch}'" >>"${direct_test_path}"
+done
+
+cat <<__END_OF_YAML_FOR_DIRECT_TEST_01__ >>"${direct_test_path}"
+    tags:
+      - '!*'
+  pull_request:
+    branches:
+      - '*'
+      - '*/*'
+__END_OF_YAML_FOR_DIRECT_TEST_01__
+
+for branch in "${branches[@]}"; do
+  echo "      - '!${branch}'" >>"${direct_test_path}"
+done
+
+cat <<__END_OF_YAML_FOR_DIRECT_TEST_02__ >>"${direct_test_path}"
+jobs:
+  test:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macOS-latest
+        swift-version:
+__END_OF_YAML_FOR_DIRECT_TEST_02__
+
+for version in "${swift_versions[@]}"; do
+  echo "          - '${version}'" >>"${direct_test_path}"
+done
+
+cat <<__END_OF_YAML_FOR_DIRECT_TEST_03__ >>"${direct_test_path}"
+    runs-on: \${{ matrix.os }}
+    name: Test of Action-setup-swift
+    steps:
+    - uses: actions/checkout@master
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+    - name: Install Swift.
+      run: node main.js
+      env:
+        SWIFT_VERSION: \${{ matrix.swift-version }}
+    - name: View Swift Version
+      run: swift --version
+    - name: Run Swift
+      run: cd swift-package-for-test && swift test
+__END_OF_YAML_FOR_DIRECT_TEST_03__
