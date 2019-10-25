@@ -84,13 +84,6 @@ cat <<__END_OF_YAML_FOR_DIRECT_TEST_01__ >>"${direct_test_path}"
     branches:
       - '*'
       - '*/*'
-__END_OF_YAML_FOR_DIRECT_TEST_01__
-
-for branch in "${branches[@]}"; do
-  echo "      - '!${branch}'" >>"${direct_test_path}"
-done
-
-cat <<__END_OF_YAML_FOR_DIRECT_TEST_02__ >>"${direct_test_path}"
 jobs:
   test:
     strategy:
@@ -99,13 +92,13 @@ jobs:
           - ubuntu-latest
           - macOS-latest
         swift-version:
-__END_OF_YAML_FOR_DIRECT_TEST_02__
+__END_OF_YAML_FOR_DIRECT_TEST_01__
 
 for version in "${swift_versions[@]}"; do
   echo "          - '${version}'" >>"${direct_test_path}"
 done
 
-cat <<__END_OF_YAML_FOR_DIRECT_TEST_03__ >>"${direct_test_path}"
+cat <<__END_OF_YAML_FOR_DIRECT_TEST_02__ >>"${direct_test_path}"
     runs-on: \${{ matrix.os }}
     name: Test of Action-setup-swift
     steps:
@@ -121,4 +114,4 @@ cat <<__END_OF_YAML_FOR_DIRECT_TEST_03__ >>"${direct_test_path}"
       run: swift --version
     - name: Run Swift
       run: cd swift-package-for-test && swift test
-__END_OF_YAML_FOR_DIRECT_TEST_03__
+__END_OF_YAML_FOR_DIRECT_TEST_02__

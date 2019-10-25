@@ -15,9 +15,6 @@ on:
     branches:
       - '*'
       - '*/*'
-      - '!master'
-      - '!1.0.x/development'
-      - '!1.0.x/experiment'
 jobs:
   test:
     strategy:
