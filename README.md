@@ -16,7 +16,7 @@ steps:
 - run: swift --version
 ```
 
-You can see another slightly complex sample in [main.yml](./.github/workflows/main.yml).
+You can see another slightly complex sample in [branch-master.yml](./.github/workflows/branch-master.yml).
 
 
 # License
