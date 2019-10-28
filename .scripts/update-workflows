@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 declare -r repository_root="$(cd "$(dirname "$0")" && pwd)/.."
 declare -r workflows_directory="${repository_root}/.github/workflows"
