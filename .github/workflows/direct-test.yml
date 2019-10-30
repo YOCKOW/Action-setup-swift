@@ -32,6 +32,8 @@ jobs:
     - uses: actions/setup-node@v1
       with:
         node-version: '12.x'
+    - name: Run the smoke test.
+      run: npm ci && npm run smoke-test
     - name: Install Swift.
       run: node ./lib/main.js
       env:

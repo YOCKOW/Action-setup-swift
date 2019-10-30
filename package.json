@@ -5,7 +5,7 @@
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "smoke-test": "jest"
   },
   "keywords": [],
   "author": "YOCKOW",
@@ -17,7 +17,27 @@
     "@types/semver": "^6.0.2"
   },
   "devDependencies": {
+    "@types/jest": "^24.0.20",
     "@types/node": "^12.7.12",
-    "typescript": "^3.6.3"
+    "jest": "^24.9.0",
+    "ts-jest": "^24.1.0",
+    "typescript": "^3.6.4"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "ts",
+      "js"
+    ],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "globals": {
+      "ts-jest": {
+        "tsConfig": "tsconfig.json"
+      }
+    },
+    "testMatch": [
+      "**/__tests__/**/*.test.ts"
+    ]
   }
 }
