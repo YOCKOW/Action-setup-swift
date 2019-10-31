@@ -107,6 +107,8 @@ cat <<__END_OF_YAML_FOR_DIRECT_TEST_02__ >>"${direct_test_path}"
     - uses: actions/setup-node@v1
       with:
         node-version: '12.x'
+    - name: Check modules (for production).
+      run: ./.scripts/check-modules
     - name: Run the smoke test.
       run: npm ci && npm run smoke-test
     - name: Install Swift.
