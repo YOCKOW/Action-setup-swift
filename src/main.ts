@@ -3,7 +3,7 @@ import * as exec from '@actions/exec';
 import * as os from 'os'
 import * as xcode from './xcode'
 
-const swiftVersion: string = core.getInput('swift-version');
+const swiftVersion: string = core.getInput('swift-version', { required: true });
 
 const homeDirectory = os.homedir();
 const workingDirectory = `${homeDirectory}/action-setup-swift-workspace`;
