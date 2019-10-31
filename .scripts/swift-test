@@ -1,0 +1,6 @@
+#!/bin/bash
+
+declare -r repository_root="$(cd "$(dirname "$0")" && pwd)/.."
+declare -r package_directory="${repository_root}/swift-test-package"
+
+cd "${package_directory}" && swift test
