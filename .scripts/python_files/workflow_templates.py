@@ -1,4 +1,5 @@
 from copy import deepcopy
+from textwrap import dedent
 from typing import List
 from workflow import Workflow
 
@@ -104,8 +105,8 @@ __direct_test = {
   }
 }
 
-__check_modules = {
-  'name': "Check modules",
+__check_commits = {
+  'name': "Check commits",
   'on': {
     'push': {
       'branches': ['*', '*/*'],
@@ -140,6 +141,32 @@ __check_modules = {
           'run': f"{SCRIPTS_DIR}/check-modules"
         }
       ]
+    },
+    'check-traspilation': {
+      'runs-on': "ubuntu-latest",
+      'name': "Check whether or not transpilation is completed.",
+      'steps':[
+        {
+          'uses': "actions/checkout@master"
+        },
+        {
+          'uses': "actions/setup-node@v1",
+          'with': {
+            'node-version': '12.x'
+          }
+        },
+        {
+          'name': 'Check transpilation',
+          'run': dedent("""\
+            npm install
+            npm run build
+            if [ $(git diff -- ./lib) ]; then
+              echo "Transpilation has not been completed."
+              exit 1
+            fi
+          """)
+        }
+      ]
     }
   }
 }
@@ -156,5 +183,5 @@ def workflow_for_direct_test(excluding_branches: List[str]) -> Workflow:
   template['on']['push']['branches'] += list(map(lambda branch: f"!{branch}", excluding_branches))
   return Workflow(template)
 
-def workflow_for_checking_modules() -> Workflow:
-  return Workflow(__check_modules)
+def workflow_for_checking_commits() -> Workflow:
+  return Workflow(__check_commits)
