@@ -3,7 +3,10 @@
 from pathlib import Path
 import shutil
 from python_files.repository_path import WORKFLOWS_DIRECTORY
-from python_files.workflow import Workflow
+try:
+  from workflow import Workflow
+except:
+  raise ImportError("Could you exec `pip3 install git+https://github.com/YOCKOW/PythonGitHubActionsWorkflowRepresentation.git`?")
 from python_files.workflow_templates import workflow_for_branch, workflow_for_direct_test, workflow_for_checking_commits
 
 official_branches = [
@@ -22,7 +25,7 @@ def write_workflow_to_file(workflow: Workflow, path: Path):
   print(f"  - Writing {path}")
   with open(path, 'w') as file:
     file.write(header)
-    file.write(workflow.yaml_string())
+    file.write(str(workflow.yaml()))
 
 print("Creating backup files.")
 for wf_file in WORKFLOWS_DIRECTORY.iterdir():

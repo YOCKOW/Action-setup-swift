@@ -1,7 +1,10 @@
 from copy import deepcopy
 from textwrap import dedent
 from typing import List
-from workflow import Workflow
+try:
+  from workflow import Workflow
+except:
+  raise ImportError("Could you exec `pip3 install git+https://github.com/YOCKOW/PythonGitHubActionsWorkflowRepresentation.git`?")
 
 
 SCRIPTS_DIR = './.scripts'
