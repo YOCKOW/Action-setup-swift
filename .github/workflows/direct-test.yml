@@ -2,7 +2,7 @@
 # You can edit ".scripts/update-workflows"
 
 name: Direct Test
-on:
+"on":
   push:
     branches:
       - "*"

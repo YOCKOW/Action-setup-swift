@@ -2,7 +2,7 @@
 # You can edit ".scripts/update-workflows"
 
 name: Check commits
-on:
+"on":
   push:
     branches:
       - "*"

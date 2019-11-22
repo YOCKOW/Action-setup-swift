@@ -2,7 +2,7 @@
 # You can edit ".scripts/update-workflows"
 
 name: Test for branch "1.0.x/experiment"
-on:
+"on":
   push:
     branches:
       - 1.0.x/experiment
