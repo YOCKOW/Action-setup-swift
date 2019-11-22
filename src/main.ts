@@ -25,7 +25,7 @@ async function prepare_directory(): Promise<void> {
 
 async function download_swiftenv(): Promise<void> {
   await run('Download swiftenv...', async () => {
-    await exec.exec('git', ['clone', 'https://github.com/kylef/swiftenv.git', swiftenvDirectory]);
+    await exec.exec('git', ['clone', '--depth', '1', 'https://github.com/kylef/swiftenv.git', swiftenvDirectory]);
     core.addPath(swiftenvBinDirectory);
     core.exportVariable('SWIFTENV_ROOT', swiftenvDirectory)
   })
