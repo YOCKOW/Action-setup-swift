@@ -1,6 +1,0 @@
-#!/bin/bash
-
-declare -r scripts_directory="$(cd "$(dirname "$0")" && pwd)"
-declare -r python_files_directory="${scripts_directory}/python_files"
-
-python3 -m unittest discover -s "${python_files_directory}" -p "test*.py"
