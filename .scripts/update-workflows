@@ -11,6 +11,8 @@ from python_files.workflow_templates import workflow_for_branch, workflow_for_di
 
 official_branches = [
   'master',
+  '1.1/development',
+  '1.0.x/master',
   '1.0.x/development',
   '1.0.x/experiment'
 ]
