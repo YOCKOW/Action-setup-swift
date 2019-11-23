@@ -9,14 +9,15 @@ except:
 
 SCRIPTS_DIR = './.scripts'
 OS_LIST = ['ubuntu-latest', 'macOS-latest']
-SWIFT_VERSION_LIST = ['5.1.1', 'DEVELOPMENT-SNAPSHOT-2019-10-21-a']
+SWIFT_VERSION_LIST = ['5.1.2', 'DEVELOPMENT-SNAPSHOT-2019-10-21-a']
+EXCLUDING_BRANCHES = ['!no-tests/**']
 
 __each_branch = {
   'name': "Test for branch \"%s\"",
   'on': {
     'push': {
       'branches': [],
-      'tags': ['!*']
+      'tags': ['!**']
     }
   },
   'jobs': {
@@ -57,11 +58,11 @@ __direct_test = {
   'name': "Direct Test",
   'on': {
     'push': {
-      'branches': ['*', '*/*'],
-      'tags': ['!*']
+      'branches': ['**'] + EXCLUDING_BRANCHES,
+      'tags': ['!**']
     },
     'pull_request': {
-      'branches': ['*', '*/*']
+      'branches': ['**'] + EXCLUDING_BRANCHES
     }
   },
   'jobs': {
@@ -112,11 +113,11 @@ __check_commits = {
   'name': "Check commits",
   'on': {
     'push': {
-      'branches': ['*', '*/*'],
-      'tags': ['!*']
+      'branches': ['**'] + EXCLUDING_BRANCHES,
+      'tags': ['!**']
     },
     'pull_request': {
-      'branches': ['*', '*/*']
+      'branches': ['**'] + EXCLUDING_BRANCHES,
     }
   },
   'jobs': {
