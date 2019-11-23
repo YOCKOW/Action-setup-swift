@@ -7,7 +7,7 @@ name: Test for branch "1.0.x/development"
     branches:
       - 1.0.x/development
     tags:
-      - "!*"
+      - "!**"
 jobs:
   branch-test:
     name: Test of Action-setup-swift
@@ -17,7 +17,7 @@ jobs:
           - ubuntu-latest
           - macOS-latest
         swift-version:
-          - 5.1.1
+          - 5.1.2
           - DEVELOPMENT-SNAPSHOT-2019-10-21-a
     runs-on: ${{ matrix.os }}
     steps:

@@ -5,14 +5,14 @@ name: Check commits
 "on":
   push:
     branches:
-      - "*"
-      - "*/*"
+      - "**"
+      - "!no-tests/**"
     tags:
-      - "!*"
+      - "!**"
   pull_request:
     branches:
-      - "*"
-      - "*/*"
+      - "**"
+      - "!no-tests/**"
 jobs:
   check-modules:
     name: Check whether or not unnecessary modules are installed.

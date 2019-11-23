@@ -5,17 +5,17 @@ name: Direct Test
 "on":
   push:
     branches:
-      - "*"
-      - "*/*"
+      - "**"
+      - "!no-tests/**"
       - "!master"
       - "!1.0.x/development"
       - "!1.0.x/experiment"
     tags:
-      - "!*"
+      - "!**"
   pull_request:
     branches:
-      - "*"
-      - "*/*"
+      - "**"
+      - "!no-tests/**"
 jobs:
   direct-test:
     name: Test of Action-setup-swift
@@ -25,7 +25,7 @@ jobs:
           - ubuntu-latest
           - macOS-latest
         swift-version:
-          - 5.1.1
+          - 5.1.2
           - DEVELOPMENT-SNAPSHOT-2019-10-21-a
     runs-on: ${{ matrix.os }}
     steps:
