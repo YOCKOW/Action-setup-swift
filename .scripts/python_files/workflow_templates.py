@@ -9,8 +9,9 @@ except:
 
 SCRIPTS_DIR = './.scripts'
 OS_LIST = ['ubuntu-latest', 'macOS-latest']
-SWIFT_VERSION_LIST = ['5.1.2', 'DEVELOPMENT-SNAPSHOT-2019-10-21-a']
+SWIFT_VERSION_LIST = ['5.1.2', 'DEVELOPMENT-SNAPSHOT-2019-11-20-a']
 EXCLUDING_BRANCHES = ['!no-tests/**']
+SWIFT_PACKAGE_DIR = './swift-test-package'
 
 __each_branch = {
   'name': "Test for branch \"%s\"",
@@ -29,7 +30,7 @@ __each_branch = {
         }
       },
       'runs-on': "${{ matrix.os }}",
-      'name': "Test of Action-setup-swift",
+      'name': "Test of Action-setup-swift with `swift-version` input.",
       'steps': [
         {
           'uses': "actions/checkout@master"
@@ -39,6 +40,35 @@ __each_branch = {
           'uses': "YOCKOW/Action-setup-swift@%s",
           'with': {
             'swift-version': "${{ matrix.swift-version }}"
+          }
+        },
+        {
+          'name': "View Swift Version",
+          'run': "swift --version"
+        },
+        {
+          'name': "Run Swift",
+          'run': f"{SCRIPTS_DIR}/swift-test"
+        }
+      ]
+    },
+    'branch-test-with-swift-version-file': {
+      'strategy': {
+        'matrix': {
+          'os': OS_LIST,
+        }
+      },
+      'runs-on': "${{ matrix.os }}",
+      'name': "Test of Action-setup-swift with \".swift-version\" file.",
+      'steps': [
+        {
+          'uses': "actions/checkout@master"
+        },
+        {
+          'name': "Install Swift.",
+          'uses': "YOCKOW/Action-setup-swift@%s",
+          'with': {
+            'swift-package-directory': SWIFT_PACKAGE_DIR,
           }
         },
         {
@@ -94,6 +124,45 @@ __direct_test = {
           'run': "node ./lib/main.js",
           'env': {
             'INPUT_SWIFT-VERSION': "${{ matrix.swift-version }}"
+          }
+        },
+        {
+          'name': "View Swift Version",
+          'run': "swift --version"
+        },
+        {
+          'name': "Run Swift",
+          'run': f"{SCRIPTS_DIR}/swift-test"
+        }
+      ]
+    },
+    'direct-test-with-swift-version-file': {
+      'strategy': {
+        'matrix': {
+          'os': OS_LIST,
+        }
+      },
+      'runs-on': "${{ matrix.os }}",
+      'name': "Test of Action-setup-swift",
+      'steps': [
+        {
+          'uses': "actions/checkout@master"
+        },
+        {
+          'uses': "actions/setup-node@v1",
+          'with': {
+            'node-version': '12.x'
+          }
+        },
+        {
+          'name': "Run the smoke test.",
+          'run': "npm ci && npm run smoke-test"
+        },
+        {
+          'name': "Install Swift",
+          'run': "node ./lib/main.js",
+          'env': {
+            'INPUT_SWIFT-PACKAGE-DIRECTORY': SWIFT_PACKAGE_DIR,
           }
         },
         {
@@ -180,6 +249,7 @@ def workflow_for_branch(branch_name: str) -> Workflow:
   template['name'] = template['name'] % branch_name
   template['on']['push']['branches'].append(branch_name)
   template['jobs']['branch-test']['steps'][1]['uses'] = template['jobs']['branch-test']['steps'][1]['uses'] % branch_name
+  template['jobs']['branch-test-with-swift-version-file']['steps'][1]['uses'] = template['jobs']['branch-test-with-swift-version-file']['steps'][1]['uses'] % branch_name
   return Workflow(template)
 
 def workflow_for_direct_test(excluding_branches: List[str]) -> Workflow:

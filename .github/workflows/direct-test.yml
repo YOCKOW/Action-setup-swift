@@ -28,7 +28,7 @@ jobs:
           - macOS-latest
         swift-version:
           - 5.1.2
-          - DEVELOPMENT-SNAPSHOT-2019-10-21-a
+          - DEVELOPMENT-SNAPSHOT-2019-11-20-a
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@master
@@ -40,6 +40,29 @@ jobs:
       - name: Install Swift
         env:
           INPUT_SWIFT-VERSION: ${{ matrix.swift-version }}
+        run: node ./lib/main.js
+      - name: View Swift Version
+        run: swift --version
+      - name: Run Swift
+        run: ./.scripts/swift-test
+  direct-test-with-swift-version-file:
+    name: Test of Action-setup-swift
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macOS-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+      - name: Run the smoke test.
+        run: npm ci && npm run smoke-test
+      - name: Install Swift
+        env:
+          INPUT_SWIFT-PACKAGE-DIRECTORY: ./swift-test-package
         run: node ./lib/main.js
       - name: View Swift Version
         run: swift --version
