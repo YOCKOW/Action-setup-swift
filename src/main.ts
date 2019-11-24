@@ -3,7 +3,8 @@ import * as exec from '@actions/exec';
 import * as os from 'os'
 import * as xcode from './xcode'
 
-const swiftVersion: string = core.getInput('swift-version', { required: true });
+const inputSwiftVersion: string = core.getInput('swift-version');
+const inputSwiftPackageDirectory: string =  core.getInput('swift-package-directory') || '.'
 
 const homeDirectory = os.homedir();
 const workingDirectory = `${homeDirectory}/action-setup-swift-workspace`;
@@ -31,10 +32,33 @@ async function download_swiftenv(): Promise<void> {
   })
 }
 
-async function check_swift(): Promise<boolean> {
+let _swift_version: string = ''
+async function swift_version(): Promise<string> {
+  if (!_swift_version) {
+    if (inputSwiftVersion) {
+      _swift_version = inputSwiftVersion
+    } else {
+      await run(`Check ".swift-version" file in "${inputSwiftPackageDirectory}".`, async () => {
+        let status = await exec.exec('swiftenv', ['local'], {
+          cwd: inputSwiftPackageDirectory,
+          ignoreReturnCode: true,
+          listeners: {
+            stdout: (data: Buffer) => { _swift_version = data.toString().trim() }
+          }
+        })
+        if (status != 0) {
+          throw Error("Swift Version is not specified.")
+        }
+      })
+    }
+  }
+  return _swift_version
+}
+
+async function check_swift(swift_version: string): Promise<boolean> {
   let installed = false;
-  await run('Check whether or not Swift ' + swiftVersion + ' is already installed.', async () => {
-    let status = await exec.exec('swiftenv', ['prefix', swiftVersion], {
+  await run('Check whether or not Swift ' + swift_version + ' is already installed.', async () => {
+    let status = await exec.exec('swiftenv', ['prefix', swift_version], {
                                   ignoreReturnCode: true
                                  });
     installed = (status == 0) ? true : false;
@@ -42,16 +66,16 @@ async function check_swift(): Promise<boolean> {
   return installed;
 }
 
-async function download_swift(): Promise<void> {
+async function download_swift(swift_version: string): Promise<void> {
   await run('Download Swift (via swiftenv)...', async () => {
-    await exec.exec(swiftenvPath, ['install', swiftVersion]);
+    await exec.exec(swiftenvPath, ['install', swift_version]);
   })
 }
 
-async function switch_swift(): Promise<void> {
-  await run('Switch Swift to ' + swiftVersion, async () => {
+async function switch_swift(swift_version: string): Promise<void> {
+  await run('Switch Swift to ' + swift_version, async () => {
     let swiftPath = '';
-    await exec.exec('swiftenv', ['global', swiftVersion]);
+    await exec.exec('swiftenv', ['global', swift_version]);
     await exec.exec('swiftenv', ['versions']);
     await exec.exec(swiftenvPath, ['which', 'swift'], {
       listeners: {
@@ -81,13 +105,14 @@ async function switch_swift(): Promise<void> {
 async function main(): Promise<void> {
   await prepare_directory();
   await download_swiftenv();
-  let installed = await check_swift();
+  let detected_swift_version = await swift_version()
+  let installed = await check_swift(detected_swift_version);
   if (installed) {
-    core.info(swiftVersion + ' is already installed.');
+    core.info(detected_swift_version + ' is already installed.');
   } else {
-    await download_swift();
+    await download_swift(detected_swift_version);
   }
-  await switch_swift();
+  await switch_swift(detected_swift_version);
 }
 
 main().catch(error => { core.setFailed(error.message); })

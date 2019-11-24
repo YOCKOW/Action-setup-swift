@@ -1,9 +1,15 @@
 name: 'Swift Setup'
+color: 'green'
+icon: 'play'
 description: 'Setting Swift up.'
 inputs:
   swift-version:
     description: 'The version of Swift.'
-    required: true
+    required: false
+  swift-package-directory:
+    description: 'The directory of your Swift package.'
+    required: false
+    default: '.'
 runs:
   using: 'node12'
   main: './lib/main.js'

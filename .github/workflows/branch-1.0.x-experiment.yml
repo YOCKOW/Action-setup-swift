@@ -10,7 +10,7 @@ name: Test for branch "1.0.x/experiment"
       - "!**"
 jobs:
   branch-test:
-    name: Test of Action-setup-swift
+    name: Test of Action-setup-swift with `swift-version` input.
     strategy:
       matrix:
         os:
@@ -18,7 +18,7 @@ jobs:
           - macOS-latest
         swift-version:
           - 5.1.2
-          - DEVELOPMENT-SNAPSHOT-2019-10-21-a
+          - DEVELOPMENT-SNAPSHOT-2019-11-20-a
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@master
@@ -26,6 +26,24 @@ jobs:
         uses: YOCKOW/Action-setup-swift@1.0.x/experiment
         with:
           swift-version: ${{ matrix.swift-version }}
+      - name: View Swift Version
+        run: swift --version
+      - name: Run Swift
+        run: ./.scripts/swift-test
+  branch-test-with-swift-version-file:
+    name: Test of Action-setup-swift with ".swift-version" file.
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macOS-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@master
+      - name: Install Swift.
+        uses: YOCKOW/Action-setup-swift@1.0.x/experiment
+        with:
+          swift-package-directory: ./swift-test-package
       - name: View Swift Version
         run: swift --version
       - name: Run Swift
