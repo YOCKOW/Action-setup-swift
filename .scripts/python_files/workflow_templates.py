@@ -233,7 +233,7 @@ __check_commits = {
           'run': dedent("""\
             npm install
             npm run build
-            if [ $(git diff -- ./lib) ]; then
+            if [ -n "$(git diff -- ./lib)" ]; then
               echo "Transpilation has not been completed."
               exit 1
             fi
