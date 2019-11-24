@@ -1,6 +1,7 @@
 name: 'Swift Setup'
-color: 'green'
-icon: 'play'
+branding:
+  color: 'green'
+  icon: 'play'
 description: 'Setting Swift up.'
 inputs:
   swift-version:
