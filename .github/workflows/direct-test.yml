@@ -9,9 +9,6 @@ name: Direct Test
       - "!no-tests/**"
       - "!master"
       - "!1.1/development"
-      - "!1.0.x/master"
-      - "!1.0.x/development"
-      - "!1.0.x/experiment"
     tags:
       - "!**"
   pull_request:
