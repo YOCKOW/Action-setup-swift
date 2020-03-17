@@ -7,7 +7,7 @@ except:
   raise ImportError("Could you exec `pip3 install git+https://github.com/YOCKOW/PythonGitHubActionsWorkflowRepresentation.git`?")
 
 
-SCRIPTS_DIR = './.scripts'
+UTILS_DIR = './utils'
 OS_LIST = ['ubuntu-latest', 'macOS-latest']
 SWIFT_VERSION_LIST = ['5.1.2', 'DEVELOPMENT-SNAPSHOT-2019-11-20-a']
 EXCLUDING_BRANCHES = ['!no-tests/**']
@@ -48,7 +48,7 @@ __each_branch = {
         },
         {
           'name': "Run Swift",
-          'run': f"{SCRIPTS_DIR}/swift-test"
+          'run': f"{UTILS_DIR}/swift-test"
         }
       ]
     },
@@ -77,7 +77,7 @@ __each_branch = {
         },
         {
           'name': "Run Swift",
-          'run': f"{SCRIPTS_DIR}/swift-test"
+          'run': f"{UTILS_DIR}/swift-test"
         }
       ]
     }
@@ -132,7 +132,7 @@ __direct_test = {
         },
         {
           'name': "Run Swift",
-          'run': f"{SCRIPTS_DIR}/swift-test"
+          'run': f"{UTILS_DIR}/swift-test"
         }
       ]
     },
@@ -171,7 +171,7 @@ __direct_test = {
         },
         {
           'name': "Run Swift",
-          'run': f"{SCRIPTS_DIR}/swift-test"
+          'run': f"{UTILS_DIR}/swift-test"
         }
       ]
     }
@@ -211,7 +211,7 @@ __check_commits = {
         },
         {
           'name': "Check modules.",
-          'run': f"{SCRIPTS_DIR}/check-modules"
+          'run': f"{UTILS_DIR}/check-modules"
         }
       ]
     },

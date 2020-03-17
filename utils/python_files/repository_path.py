@@ -2,9 +2,9 @@ import os
 from pathlib import Path
 
 __pythonFiles_directory = Path(__file__).resolve().parent
-__scripts_directory = __pythonFiles_directory.parent
+__utils_directory = __pythonFiles_directory.parent
 
-REPOSITORY_ROOT: Path = __scripts_directory.parent
+REPOSITORY_ROOT: Path = __utils_directory.parent
 WORKFLOWS_DIRECTORY: Path = REPOSITORY_ROOT.joinpath('.github/workflows')
 NODE_MODULES_DIRECTORY: Path = REPOSITORY_ROOT.joinpath('node_modules')
 

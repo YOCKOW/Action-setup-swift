@@ -1,11 +1,11 @@
 #!/bin/bash
 
-declare -r scripts_directory=$(cd "$(dirname "$0")" && pwd)
-declare -r repository_root=$(cd "${scripts_directory}/.." && pwd)
+declare -r utils_directory=$(cd "$(dirname "$0")" && pwd)
+declare -r repository_root=$(cd "${utils_directory}/.." && pwd)
 
 declare -i nn=0
 
-bash "${scripts_directory}/dev-deps" 2>/dev/null | while read line
+bash "${utils_directory}/dev-deps" 2>/dev/null | while read line
 do
   if [ -d "${repository_root}/node_modules/${line}" ]; then
     echo "Error: ${line} is not necessary for production." >&2
