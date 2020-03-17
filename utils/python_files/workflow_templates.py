@@ -9,7 +9,7 @@ except:
 
 UTILS_DIR = './utils'
 OS_LIST = ['ubuntu-latest', 'macOS-latest']
-SWIFT_VERSION_LIST = ['5.1.2', 'DEVELOPMENT-SNAPSHOT-2019-11-20-a']
+SWIFT_VERSION_LIST = ['5.1.3', 'DEVELOPMENT-SNAPSHOT-2020-02-21-a']
 EXCLUDING_BRANCHES = ['!no-tests/**']
 SWIFT_PACKAGE_DIR = './swift-test-package'
 
