@@ -15,7 +15,7 @@ steps:
 - uses: YOCKOW/Action-setup-swift@master
   with:
     swift-version: '5.1.2' # This value is passed to swiftenv without modification. 
-- run: swift --version
+- run: swift test
 ```
 
 
@@ -30,7 +30,7 @@ steps:
     # The content of ".swift-version" will be used to specify the version
     # when `swift-version` input is lacked.
     # Error occurs if no ".swift-version" file is found.
-- run: swift --version
+- run: swift test
 ```
 
 
