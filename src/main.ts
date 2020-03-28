@@ -8,11 +8,9 @@ const inputSwiftPackageDirectory: string =  core.getInput('swift-package-directo
 
 const homeDirectory = os.homedir();
 const workingDirectory = `${homeDirectory}/action-setup-swift-workspace`;
-const repositoriesDirectory = `${workingDirectory}/repositories`
-const swiftenvDirectory = `${repositoriesDirectory}/.swiftenv`;
+const swiftenvDirectory = `${workingDirectory}/.swiftenv`;
 const swiftenvBinDirectory = `${swiftenvDirectory}/bin`;
 const swiftenvPath = `${swiftenvBinDirectory}/swiftenv`;
-const cacheActionDirectory = `${repositoriesDirectory}/.cache`
 
 async function run(name: string, closure: () => Promise<void> ): Promise<void> {
   core.startGroup(name);
@@ -23,7 +21,6 @@ async function run(name: string, closure: () => Promise<void> ): Promise<void> {
 async function prepare_directory(): Promise<void> {
   await run('Prepare working directory...', async () => {
     await exec.exec('mkdir', ['-p', workingDirectory]);
-    await exec.exec('mkdir', ['-p', repositoriesDirectory]);
   })
 }
 
@@ -56,62 +53,6 @@ async function swift_version(): Promise<string> {
     }
   }
   return _swift_version
-}
-
-async function download_cache_action(): Promise<void> {
-  await run('Download acitions/cache', async () => {
-    await exec.exec('git', ['clone', '--depth', '1', '-b', 'v1.1.2', 'https://github.com/actions/cache.git', cacheActionDirectory]);
-  })
-}
-
-function toolchain_directory(swift_version: string): string {
-  if (os.platform() == 'darwin') {
-    if (/^\d+(\.\d+)+$/.test(swift_version)) {
-      return `/Library/Developer/Toolchains/swift-${swift_version}-RELEASE.xctoolchain`
-    } else {
-      return `/Library/Developer/Toolchains/swift-${swift_version}.xctoolchain`
-    }
-  } else {
-    return `${swiftenvDirectory}/versions/${swift_version}`
-  }
-}
-
-const platform_name: () => Promise<string> = (() => {
-  let _platform_name = ''
-  return async () => {
-    if (!_platform_name) {
-      if (os.platform() == 'darwin') {
-        _platform_name = 'macOS'
-      } else {
-        const status = await exec.exec('lsb_release', ['-cs'], {
-          ignoreReturnCode: true,
-          listeners: {
-            stdout: (data: Buffer) => { _platform_name = data.toString().trim() }
-          }
-        })
-        if (status != 0 || _platform_name == '') {
-          _platform_name = 'unknown'
-        }
-      }
-    }
-    return _platform_name
-  }
-})()
-
-async function restore_cache(swift_version: string): Promise<void> {
-  await run('Try to resotre cache', async () => {
-    process.env['INPUT_PATH'] = toolchain_directory(swift_version)
-    process.env['INPUT_KEY'] = `yockow.action.setupswift-${await platform_name()}-${swift_version}`
-    const _ = await import(`${cacheActionDirectory}/dist/restore/index.js`)
-  })
-}
-
-async function save_cache(swift_version: string): Promise<void> {
-  await run('Try to save cache', async () => {
-    process.env['INPUT_PATH'] = toolchain_directory(swift_version)
-    process.env['STATE_CACHE_KEY'] = `yockow.action.setupswift-${await platform_name()}-${swift_version}`
-    const _ = await import(`${cacheActionDirectory}/dist/save/index.js`)
-  })
 }
 
 async function check_swift(swift_version: string): Promise<boolean> {
@@ -165,10 +106,6 @@ async function main(): Promise<void> {
   await prepare_directory();
   await download_swiftenv();
   let detected_swift_version = await swift_version()
-
-  await download_cache_action()
-  await restore_cache(detected_swift_version)
-
   let installed = await check_swift(detected_swift_version);
   if (installed) {
     core.info(detected_swift_version + ' is already installed.');
@@ -176,8 +113,6 @@ async function main(): Promise<void> {
     await download_swift(detected_swift_version);
   }
   await switch_swift(detected_swift_version);
-
-  await save_cache(detected_swift_version)
 }
 
 main().catch(error => { core.setFailed(error.message); })
