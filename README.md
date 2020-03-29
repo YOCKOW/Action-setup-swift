@@ -36,7 +36,7 @@ steps:
 
 ## Others
 
-You can see another slightly complex sample in [branch-master.yml](./.github/workflows/branch-master.yml).
+You can see another slightly complex sample at [the author's gist](https://gist.github.com/YOCKOW/352b3594bfcb2c06d953647adaf65e78).
 
 
 # License
