@@ -27,8 +27,6 @@ jobs:
       - name: Check whether or not necessary modules are up-to-date.
         run: |
           npm install --production
-          npm install -g removeNPMAbsolutePaths
-          removeNPMAbsolutePaths .
           if [ -n "$(git diff -- ./node_modules)" ]; then
             echo "Modules are not up-to-date."
             exit 1
