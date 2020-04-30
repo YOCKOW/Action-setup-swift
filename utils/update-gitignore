@@ -35,6 +35,7 @@ with open(gitignore_path_string, 'w') as gitignore:
 """
 Add git paths of required modules.
 """
+print('Add required node packages.')
 for dep in prod_deps:
   if dependencies.package_is_installed(dep) and not dependencies.package_is_tracked(dep):
     completed = subprocess.run(['git', 'add', '--force', f'node_modules/{dep}'], cwd=repository_path.REPOSITORY_ROOT, stdout=subprocess.DEVNULL, stderr=sys.stderr)
