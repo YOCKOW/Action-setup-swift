@@ -12,7 +12,7 @@ name: Check commits
       - "!no-tests/**"
 jobs:
   check-modules:
-    name: Check whether or not unnecessary modules are installed.
+    name: Check Modules
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -22,8 +22,17 @@ jobs:
       - uses: actions/setup-python@v1.1.1
         with:
           python-version: "3.7"
-      - name: Check modules.
-        run: ./utils/check-modules
+      - name: Check whether or not unnecessary modules are installed.
+        run: ./utils/check-unnecessary-modules
+      - name: Check whether or not necessary modules are up-to-date.
+        run: |
+          npm install --production
+          npm install -g removeNPMAbsolutePaths
+          removeNPMAbsolutePaths .
+          if [ -n "$(git diff -- ./node_modules)" ]; then
+            echo "Modules are not up-to-date."
+            exit 1
+          fi
   check-traspilation:
     name: Check whether or not transpilation is completed.
     runs-on: ubuntu-latest
