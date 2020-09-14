@@ -20,7 +20,7 @@ jobs:
           - macOS-latest
         swift-version:
           - 5.2.4
-          - DEVELOPMENT-SNAPSHOT-2020-06-04-a
+          - DEVELOPMENT-SNAPSHOT-2020-08-31-a
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@master
