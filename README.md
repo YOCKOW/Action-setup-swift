@@ -11,10 +11,10 @@ See [action.yml](action.yml)
 
 ```yaml
 steps:
-- uses: actions/checkout@master
-- uses: YOCKOW/Action-setup-swift@master
+- uses: actions/checkout@v2
+- uses: YOCKOW/Action-setup-swift@v1
   with:
-    swift-version: '5.1.2' # This value is passed to swiftenv without modification. 
+    swift-version: '5.3' # This value is passed to swiftenv without modification. 
 - run: swift test
 ```
 
@@ -23,13 +23,13 @@ steps:
 
 ```yaml
 steps:
-- uses: actions/checkout@master
-- uses: YOCKOW/Action-setup-swift@master
+- uses: actions/checkout@v2
+- uses: YOCKOW/Action-setup-swift@v1
   with:
     swift-package-directory: "./my-swift-package" # Default is "."
     # The content of ".swift-version" will be used to specify the version
     # when `swift-version` input is lacked.
-    # Error occurs if no ".swift-version" file is found.
+    # Error occurs if ".swift-version" file is not found.
 - run: swift test
 ```
 
