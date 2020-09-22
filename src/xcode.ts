@@ -46,6 +46,23 @@ export async function installedXcodeApplications(): Promise<XcodeInfo[]> {
   return _xcode_info_list
 }
 
+export async function swiftVersionForXcode(xcode: XcodeInfo): Promise<string> {
+  let swiftVersionString = ''
+  await exec.exec('xcrun', ['swift', '--version'], {
+    env: {
+      'DEVELOPER_DIR': xcode.path,
+    },
+    listeners: {
+      stdout: (data: Buffer) => { swiftVersionString = data.toString().trim(); }
+    }
+  });
+  const result = (new RegExp('Swift version (\\d+(?:\\.\\d+)+)')).exec(swiftVersionString)
+  if (!result) {
+    throw Error(`Swift Version cannot be detected for ${xcode.path}`)
+  }
+  return result[1]
+}
+
 export async function latestXcode(): Promise<XcodeInfo> {
   const list = await installedXcodeApplications();
   let latest: XcodeInfo | null = null;
