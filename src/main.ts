@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as os from 'os'
+import * as semver from 'semver'
 import * as xcode from './xcode'
 
 const inputSwiftVersion: string = core.getInput('swift-version');
@@ -55,15 +56,32 @@ async function swift_version(): Promise<string> {
   return _swift_version
 }
 
-async function check_swift(swift_version: string): Promise<boolean> {
-  let installed = false;
-  await run('Check whether or not Swift ' + swift_version + ' is already installed.', async () => {
-    let status = await exec.exec('swiftenv', ['prefix', swift_version], {
-                                  ignoreReturnCode: true
-                                 });
-    installed = (status == 0) ? true : false;
-  })
-  return installed;
+interface XcodeInApplicationsDirectory {
+  xcodeInfo: xcode.XcodeInfo
+}
+type SwiftPath = "not_found" | XcodeInApplicationsDirectory | "another"
+
+let _swift_paths: Map<string, SwiftPath | null> = new Map()
+async function swift_path(swift_version: string): Promise<SwiftPath> {
+  if (!_swift_paths.has(swift_version)) {
+    _swift_paths.set(swift_version, "not_found")
+    await run('Check whether or not Swift ' + swift_version + ' is already installed.', async () => {
+      // Avoid calling `mdfind` if possible
+      let xcodesInAppDir = Array.from((await xcode.installedXcodeApplicationsUnderApplicationsDirectory()).values())
+      for (const xcodeInfo of xcodesInAppDir.reverse()) {
+        if (await xcodeInfo.swiftVersion() == swift_version) {
+          _swift_paths.set(swift_version, { xcodeInfo: xcodeInfo })
+          return
+        }
+      }
+      
+      let status = await exec.exec('swiftenv', ['prefix', swift_version], {ignoreReturnCode: true});
+      if (status == 0) {
+        _swift_paths.set(swift_version, "another")
+      }
+    })
+  }
+  return _swift_paths.get(swift_version) as SwiftPath
 }
 
 async function download_swift(swift_version: string): Promise<void> {
@@ -75,28 +93,41 @@ async function download_swift(swift_version: string): Promise<void> {
 async function switch_swift(swift_version: string): Promise<void> {
   await run('Switch Swift to ' + swift_version, async () => {
     let swiftPath = '';
-    await exec.exec('swiftenv', ['global', swift_version]);
-    await exec.exec('swiftenv', ['versions']);
-    await exec.exec(swiftenvPath, ['which', 'swift'], {
-      listeners: {
-        stdout: (data: Buffer) => { swiftPath = data.toString().trim(); }
-      }
-    });
+
+    const where_swift = await swift_path(swift_version)
+    if (typeof where_swift !== 'string') {
+      swiftPath = where_swift.xcodeInfo.path + '/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift'
+    } else {
+      await exec.exec('swiftenv', ['global', swift_version]);
+      await exec.exec('swiftenv', ['versions']);
+      await exec.exec(swiftenvPath, ['which', 'swift'], {
+        listeners: {
+          stdout: (data: Buffer) => { swiftPath = data.toString().trim(); }
+        }
+      });
+    }
     let swiftBinDirectory= swiftPath.replace(/\/swift$/, '');
     
     // FIXME: There should be more appropriate way...
     if (os.platform() == 'darwin') {
       // Use release rather than beta
-      const betaRegexResult = (new RegExp('^(/Applications/Xcode[^/]*)_beta.app')).exec(swiftBinDirectory)
+      const betaRegexResult = (new RegExp('^(/.+/Xcode[^/]*)_beta.app')).exec(swiftBinDirectory)
       if (betaRegexResult) {
         core.info("Xcode is beta version.")
+        const expectedReleaseVersion = await new xcode.XcodeInfo(betaRegexResult[0]).version()
         const expectedReleasePath = betaRegexResult[1] + '.app'
-        const xcodes = await xcode.installedXcodeApplications()
-        for (let xcodeInfo of xcodes) {
-          if (xcodeInfo.path == expectedReleasePath && swift_version == await xcode.swiftVersionForXcode(xcodeInfo)) {
-            core.info(`Xcode release version is found.`)
-            swiftBinDirectory = swiftBinDirectory.replace('_beta', '')
-            break
+        const expectedReleaseXcode = new xcode.XcodeInfo(expectedReleasePath)
+        if (swift_version == await expectedReleaseXcode.swiftVersion().catch()) {
+          core.info(`Xcode release version is found.`)
+          swiftBinDirectory = swiftBinDirectory.replace('_beta', '')
+        } else {
+          const xcodes = Array.from((await xcode.allInstalledXcodeApplications()).values())
+          for (let xcodeInfo of xcodes) {
+            if (semver.eq(await xcodeInfo.version(), expectedReleaseVersion) && swift_version == await xcodeInfo.swiftVersion()) {
+              core.info(`Xcode release version is found.`)
+              swiftBinDirectory = xcodeInfo.path + '/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin'
+              break
+            }
           }
         }
       }
@@ -123,11 +154,11 @@ async function main(): Promise<void> {
   await prepare_directory();
   await download_swiftenv();
   let detected_swift_version = await swift_version()
-  let installed = await check_swift(detected_swift_version);
-  if (installed) {
-    core.info(detected_swift_version + ' is already installed.');
-  } else {
+  let where_swift = await swift_path(detected_swift_version);
+  if (where_swift == "not_found") {
     await download_swift(detected_swift_version);
+  } else {
+    core.info(detected_swift_version + ' is already installed.');
   }
   await switch_swift(detected_swift_version);
 }
