@@ -3,11 +3,18 @@ import * as xcode from '../src/xcode'
 
 describe('Xcode Tests', () => {
   test('List of Applications', async () => {
-    const list = await xcode.installedXcodeApplications()
+    let list = await xcode.installedXcodeApplicationsUnderApplicationsDirectory()
     if (os.platform() == 'darwin') {
-      expect(list.length).toBeGreaterThan(0)
+      expect(list.size).toBeGreaterThan(0)
     } else {
-      expect(list.length).toBe(0)
+      expect(list.size).toBe(0)
+    }
+
+    list = await xcode.allInstalledXcodeApplications()
+    if (os.platform() == 'darwin') {
+      expect(list.size).toBeGreaterThan(0)
+    } else {
+      expect(list.size).toBe(0)
     }
   })
 })
