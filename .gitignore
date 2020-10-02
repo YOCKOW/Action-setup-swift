@@ -36,6 +36,7 @@ __pycache__
 !/node_modules/is-plain-object
 !/node_modules/is-stream
 !/node_modules/isexe
+!/node_modules/jsesc
 !/node_modules/locate-path
 !/node_modules/lodash.get
 !/node_modules/lodash.set
