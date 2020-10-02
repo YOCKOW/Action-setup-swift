@@ -18,17 +18,13 @@ class _DepCache:
   __cache: Dict[_Type, FrozenSet[str]] = dict()
 
   @classmethod
-  def __extract_package_name(Self) -> Callable[[str], Optional[str]]:
-    dep_line_regex = r'^[\s\u2500-\u257F]+(?:UNMET (?:OPTIONAL )?DEPENDENCY)?\s*(\S+)@\d(\.\d)+(?:\s+deduped)?\s*$'
-    def extract_package_name(line: str) -> Optional[str]:
-      match = re.search(dep_line_regex, line)
-      if match: return match.group(1)
-      return None
-    return extract_package_name
-  
-  @classmethod
   def _extract_package_name(Self, line: str) -> Optional[str]:
-    return Self.__extract_package_name()(line)
+    name = line
+    name = re.sub(r'^[\s\u2500-\u257F]+(?:UNMET (?:OPTIONAL )?DEPENDENCY)?\s*', '', name)
+    if name == line:
+      return None
+    name = re.sub(r'@\d(?:\.\d+)+(\s+deduped\s*)?$', '', name)
+    return name
 
   @classmethod
   def __lines(Self, prod: bool = True) -> List[str]:
@@ -99,6 +95,7 @@ if __name__ == '__main__':
       self.assertIsNone(_DepCache._extract_package_name('Action-setup-swift@1.0.5-dev /path/to/repository'))
       self.assertEqual(_DepCache._extract_package_name('├── @actions/core@1.1.3'), '@actions/core')
       self.assertEqual(_DepCache._extract_package_name('│ │ │ │   └── os-name@3.1.0 deduped'), 'os-name')
+      self.assertEqual(_DepCache._extract_package_name('│ │ │ │ ├── @babel/core@7.11.6 deduped'), '@babel/core')
 
     def test_dependencies(self):
       self.assertTrue("@actions/core" in for_production())
