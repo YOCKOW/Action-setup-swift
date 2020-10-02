@@ -5,8 +5,7 @@ declare -r repository_root=$(cd "${utils_directory}/.." && pwd)
 
 declare -i nn=0
 
-bash "${utils_directory}/dev-deps" 2>/dev/null | while read line
-do
+for line in $(python3 "${utils_directory}/dev-deps" 2>/dev/null); do
   if [ -d "${repository_root}/node_modules/${line}" ]; then
     echo "Error: ${line} is not necessary for production." >&2
     nn=$(( $nn + 1 ))
