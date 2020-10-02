@@ -29,6 +29,7 @@ __pycache__
 !/node_modules/cross-spawn
 !/node_modules/deprecation
 !/node_modules/end-of-stream
+!/node_modules/esparse
 !/node_modules/execa
 !/node_modules/find-up
 !/node_modules/get-stream

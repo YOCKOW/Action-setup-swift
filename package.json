@@ -21,6 +21,7 @@
     "@actions/core": "^1.2.6",
     "@actions/exec": "^1.0.4",
     "@actions/github": "^2.2.0",
+    "esparse": "^0.6.11",
     "import-local": "^3.0.2",
     "jsesc": "^3.0.1",
     "semver": "^7.3.2"
