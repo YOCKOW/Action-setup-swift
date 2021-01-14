@@ -23,7 +23,7 @@ class _DepCache:
     name = re.sub(r'^[\s\u2500-\u257F]+(?:UNMET (?:OPTIONAL )?DEPENDENCY)?\s*', '', name)
     if name == line:
       return None
-    name = re.sub(r'@\d(?:\.\d+)+(\s+deduped\s*)?$', '', name)
+    name = re.sub(r'@\d+(?:\.\d+)+(\s+deduped\s*)?$', '', name)
     return name
 
   @classmethod
@@ -96,6 +96,8 @@ if __name__ == '__main__':
       self.assertEqual(_DepCache._extract_package_name('├── @actions/core@1.1.3'), '@actions/core')
       self.assertEqual(_DepCache._extract_package_name('│ │ │ │   └── os-name@3.1.0 deduped'), 'os-name')
       self.assertEqual(_DepCache._extract_package_name('│ │ │ │ ├── @babel/core@7.11.6 deduped'), '@babel/core')
+      self.assertEqual(_DepCache._extract_package_name('│ └─┬ @octokit/rest@16.43.2'), '@octokit/rest')
+      self.assertEqual(_DepCache._extract_package_name('│   │   └── @types/node@12.19.13 deduped'), '@types/node')
 
     def test_dependencies(self):
       self.assertTrue("@actions/core" in for_production())

@@ -1,6 +1,6 @@
 {
   "name": "Action-setup-swift",
-  "version": "1.1.8",
+  "version": "1.1.10",
   "description": "Setting Swift up.",
   "main": "lib/main.js",
   "scripts": {
@@ -21,14 +21,14 @@
     "@actions/core": "^1.2.6",
     "@actions/exec": "^1.0.4",
     "@actions/github": "^2.2.0",
-    "semver": "^7.3.2"
+    "semver": "^7.3.4"
   },
   "devDependencies": {
     "@types/jest": "^25.2.3",
-    "@types/node": "^12.12.62",
+    "@types/node": "^12.19.13",
     "@types/semver": "^7.3.4",
-    "jest": "^26.4.2",
-    "ts-jest": "^26.4.1",
+    "jest": "^26.6.3",
+    "ts-jest": "^26.4.4",
     "typescript": "^3.9.7"
   },
   "jest": {
