@@ -28,8 +28,8 @@ class _DepCache:
 
   @classmethod
   def __lines(Self, prod: bool = True) -> List[str]:
-    config = 'prod' if prod else 'dev'
-    completed = subprocess.run(['npm', 'list', '-only', config], cwd=path.REPOSITORY_ROOT, stdout=subprocess.PIPE)
+    config = '-prod' if prod else '-dev'
+    completed = subprocess.run(['npm', 'list', config, '--depth', '2147483647'], cwd=path.REPOSITORY_ROOT, stdout=subprocess.PIPE)
     if completed.returncode != 0: raise SystemError('`npm list` failed.')
     return completed.stdout.decode('utf-8').splitlines()
 
