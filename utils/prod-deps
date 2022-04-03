@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+
+from python_files import dependencies
+
+deps = sorted(list(dependencies.for_production()))
+for dep in deps:
+  print(dep)

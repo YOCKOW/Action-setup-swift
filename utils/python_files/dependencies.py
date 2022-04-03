@@ -20,10 +20,11 @@ class _DepCache:
   @classmethod
   def _extract_package_name(Self, line: str) -> Optional[str]:
     name = line
-    name = re.sub(r'^[\s\u2500-\u257F]+(?:UNMET (?:OPTIONAL )?DEPENDENCY)?\s*', '', name)
+    name = re.sub(r'^[\s\u2500-\u257F]+(?:UNMET (?:OPTIONAL | PEER )?DEPENDENCY)?\s*', '', name)
     if name == line:
       return None
     name = re.sub(r'@\d+(?:\.\d+)+(\s+deduped\s*)?$', '', name)
+    name = re.sub(r'@(?:\^|\>=)\d+(?:\.\d+)+(?:\s*\|\|\s*(?:\^|\>=)\d+(?:\.\d+)+\s*)*$', '', name) # UNMET OPTIONAL|PEER DEPENDENCY 
     return name
 
   @classmethod
@@ -98,6 +99,10 @@ if __name__ == '__main__':
       self.assertEqual(_DepCache._extract_package_name('│ │ │ │ ├── @babel/core@7.11.6 deduped'), '@babel/core')
       self.assertEqual(_DepCache._extract_package_name('│ └─┬ @octokit/rest@16.43.2'), '@octokit/rest')
       self.assertEqual(_DepCache._extract_package_name('│   │   └── @types/node@12.19.13 deduped'), '@types/node')
+      self.assertEqual(_DepCache._extract_package_name('│ │ │ │   │ └── UNMET OPTIONAL DEPENDENCY utf-8-validate@^5.0.2'), 'utf-8-validate')
+      self.assertEqual(_DepCache._extract_package_name('│ │ │ ├── UNMET OPTIONAL DEPENDENCY node-notifier@^8.0.1 || ^9.0.0 || ^10.0.0'), 'node-notifier')
+      self.assertEqual(_DepCache._extract_package_name('│ │ │ └── UNMET OPTIONAL DEPENDENCY ts-node@>=9.0.0'), 'ts-node')
+      
 
     def test_dependencies(self):
       self.assertTrue("@actions/core" in for_production())
