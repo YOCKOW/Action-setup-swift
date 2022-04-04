@@ -88,6 +88,28 @@ def package_is_tracked(name: str) -> bool:
   """ Returns whether or not the package named `name` is tracked by git. """
   return name in _GitCache.tracking_modules()
 
+def package_has_untracked_files(name: str) -> bool:
+  """ Returns whether or not the package named `name` has untracked file(s). """
+  package_dir: Path = path.NODE_MODULES_DIRECTORY.joinpath(name)
+  if not package_dir.is_dir():
+    return True
+  all_files: Set[Path] = set(
+    map(
+      lambda f: f.relative_to(path.NODE_MODULES_DIRECTORY),
+      filter(
+        lambda f: not f.is_dir(),
+        package_dir.glob('./**/*')
+      )
+    )
+  )
+  for file in all_files:
+    completed = subprocess.run(['git', 'ls-files', '--error-unmatch', str(file)], cwd=path.NODE_MODULES_DIRECTORY, stdout=subprocess.DEVNULL)
+    if completed.returncode != 0:
+      return True
+
+  return False
+
+
 # Tests
 if __name__ == '__main__':
   import unittest
