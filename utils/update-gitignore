@@ -37,7 +37,7 @@ Add git paths of required modules.
 """
 print('Add required node packages.')
 for dep in prod_deps:
-  if dependencies.package_is_installed(dep) and not dependencies.package_is_tracked(dep):
+  if dependencies.package_is_installed(dep) and dependencies.package_has_untracked_files(dep):
     completed = subprocess.run(['git', 'add', '--force', f'node_modules/{dep}'], cwd=repository_path.REPOSITORY_ROOT, stdout=subprocess.DEVNULL, stderr=sys.stderr)
     if completed.returncode != 0:
       print(f'❌ Failed to add the path to index: {dep}', file=sys.stderr)
