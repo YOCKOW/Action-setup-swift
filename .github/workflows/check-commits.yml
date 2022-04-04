@@ -15,7 +15,7 @@ jobs:
     name: Check Modules
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - uses: actions/setup-node@v2
         with:
           node-version: 17.x
@@ -30,7 +30,7 @@ jobs:
     name: Check whether or not transpilation is completed.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@main
       - uses: actions/setup-node@v2
         with:
           node-version: 17.x
