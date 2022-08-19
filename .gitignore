@@ -34,6 +34,7 @@ __pycache__
 !/node_modules/tr46
 !/node_modules/tunnel
 !/node_modules/universal-user-agent
+!/node_modules/uuid
 !/node_modules/webidl-conversions
 !/node_modules/whatwg-url
 !/node_modules/wrappy
