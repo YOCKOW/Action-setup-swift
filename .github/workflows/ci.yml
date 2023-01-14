@@ -19,11 +19,11 @@ jobs:
           - ubuntu-latest
           - macOS-latest
         swift-version:
-          - 5.6
-          - DEVELOPMENT-SNAPSHOT-2022-03-31-a
+          - 5.7.2
+          - DEVELOPMENT-SNAPSHOT-2023-01-12-a
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@main
+      - uses: actions/checkout@v3
       - name: Install Swift.
         uses: ./
         with:
@@ -41,7 +41,7 @@ jobs:
           - macOS-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@main
+      - uses: actions/checkout@v3
       - name: Install Swift.
         uses: ./
         with:
