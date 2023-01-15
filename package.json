@@ -1,6 +1,6 @@
 {
   "name": "Action-setup-swift",
-  "version": "1.1.16",
+  "version": "1.1.17",
   "description": "Setting Swift up.",
   "main": "lib/main.js",
   "scripts": {
