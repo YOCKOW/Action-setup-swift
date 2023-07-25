@@ -24,12 +24,12 @@ class _DepCache:
     if name == line:
       return None
     name = re.sub(r'@\d+(?:\.\d+)+(\s+deduped\s*)?$', '', name)
-    name = re.sub(r'@(?:\^|\>=)\d+(?:\.\d+)+(?:\s*\|\|\s*(?:\^|\>=)\d+(?:\.\d+)+\s*)*$', '', name) # UNMET OPTIONAL|PEER DEPENDENCY 
+    name = re.sub(r'@(?:\^|\>=)\d+(?:\.\d+)+(?:\s*\|\|\s*(?:\^|\>=)\d+(?:\.\d+)+\s*)*$', '', name) # UNMET OPTIONAL|PEER DEPENDENCY
     return name
 
   @classmethod
   def __lines(Self, prod: bool = True) -> List[str]:
-    config = '-prod' if prod else '-dev'
+    config = '--omit=dev' if prod else '--include=dev'
     completed = subprocess.run(['npm', 'list', config, '--depth', '2147483647'], cwd=path.REPOSITORY_ROOT, stdout=subprocess.PIPE)
     if completed.returncode != 0: raise SystemError('`npm list` failed.')
     return completed.stdout.decode('utf-8').splitlines()
@@ -124,13 +124,13 @@ if __name__ == '__main__':
       self.assertEqual(_DepCache._extract_package_name('│ │ │ │   │ └── UNMET OPTIONAL DEPENDENCY utf-8-validate@^5.0.2'), 'utf-8-validate')
       self.assertEqual(_DepCache._extract_package_name('│ │ │ ├── UNMET OPTIONAL DEPENDENCY node-notifier@^8.0.1 || ^9.0.0 || ^10.0.0'), 'node-notifier')
       self.assertEqual(_DepCache._extract_package_name('│ │ │ └── UNMET OPTIONAL DEPENDENCY ts-node@>=9.0.0'), 'ts-node')
-      
+
 
     def test_dependencies(self):
       self.assertTrue("@actions/core" in for_production())
       self.assertTrue("typescript" in for_development())
       self.assertFalse("semver" in for_development_only())
-  
+
   class GitTrackingTests(unittest.TestCase):
     def test_installed(self):
       self.assertTrue(package_is_installed('@actions/exec'))
