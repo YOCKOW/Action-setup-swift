@@ -26,13 +26,10 @@ __pycache__
 !/node_modules/deprecation
 !/node_modules/encoding
 !/node_modules/iconv-lite
-!/node_modules/lru-cache
 !/node_modules/once
 !/node_modules/safer-buffer
 !/node_modules/semver
 !/node_modules/tunnel
 !/node_modules/undici
 !/node_modules/universal-user-agent
-!/node_modules/uuid
 !/node_modules/wrappy
-!/node_modules/yallist
