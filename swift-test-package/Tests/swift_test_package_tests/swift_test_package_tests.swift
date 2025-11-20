@@ -1,12 +1,8 @@
-import XCTest
 @testable import swift_test_package
+import Testing
 
-final class Tests: XCTestCase {
-    func testExample() {
-        XCTAssertEqual(S().text, "Hello, World!")
+@Suite struct Tests {
+    @Test func testExample() {
+        #expect(S().text == "Hello, World!")
     }
-
-    static var allTests = [
-        ("testExample", testExample),
-    ]
 }

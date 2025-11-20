@@ -17,13 +17,13 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macOS-latest
+          - macOS-26
         swift-version:
-          - "6.0.3"
-          - DEVELOPMENT-SNAPSHOT-2025-02-06-a
+          - "6.2.1"
+          - DEVELOPMENT-SNAPSHOT-2025-09-07-a
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Swift.
         uses: ./
         with:
@@ -38,10 +38,10 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macOS-latest
+          - macOS-26
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Swift.
         uses: ./
         with:
