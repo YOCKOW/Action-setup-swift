@@ -11,10 +11,10 @@ See [action.yml](action.yml)
 
 ```yaml
 steps:
-- uses: actions/checkout@v2
+- uses: actions/checkout@v5
 - uses: YOCKOW/Action-setup-swift@v1
   with:
-    swift-version: '5.3' # This value is passed to swiftenv without modification. 
+    swift-version: '6.2.1' # This value is passed to swiftenv without modification.
 - run: swift test
 ```
 
@@ -23,7 +23,7 @@ steps:
 
 ```yaml
 steps:
-- uses: actions/checkout@v2
+- uses: actions/checkout@v5
 - uses: YOCKOW/Action-setup-swift@v1
   with:
     swift-package-directory: "./my-swift-package" # Default is "."
