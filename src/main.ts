@@ -85,8 +85,44 @@ async function swift_path(swift_version: string): Promise<SwiftPath> {
 }
 
 async function download_swift(swift_version: string): Promise<void> {
+  const __download_swift = async (): Promise<number> => {
+    return await exec.exec(
+      swiftenvPath,
+      ['install', swift_version],
+      {
+        ignoreReturnCode: true,
+      }
+    );
+  };
+
+  // NOTE: Sometimes `swiftenv install ...` fails owing to curl's error 18 on GitHub Actions.
+
+  const __retryableExitStatus = (status: number): boolean => {
+    return (status == 18);
+  };
+
+  const commandDesc = `swiftenv install ${swift_version}`;
+
   await run('Download Swift (via swiftenv)...', async () => {
-    await exec.exec(swiftenvPath, ['install', swift_version]);
+    let retryCount = 0;
+    const maxRetryCount = 5;
+    while (true) {
+      retryCount++;
+      if (retryCount > maxRetryCount) {
+        throw new Error(`\`${commandDesc}\` failed too many times.`);
+      }
+
+      const exitStatus = await __download_swift();
+      if (exitStatus == 0) {
+        break;
+      }
+      const failureMessage = `\`${commandDesc}\` failed with exit code ${exitStatus}.`;
+      if (__retryableExitStatus(exitStatus)) {
+        core.info(failureMessage);
+      } else {
+        throw new Error(failureMessage);
+      }
+    }
   })
 }
 
