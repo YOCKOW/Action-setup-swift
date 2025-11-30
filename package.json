@@ -22,15 +22,15 @@
     "@actions/exec": "^1.1.1",
     "@actions/github": "^6.0.1",
     "encoding": "^0.1.13",
-    "semver": "^7.7.2"
+    "semver": "^7.7.3"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.19.3",
-    "@types/semver": "^7.7.0",
-    "jest": "^30.0.5",
-    "ts-jest": "^29.4.0",
-    "typescript": "^5.8.3"
+    "@types/node": "^24.10.1",
+    "@types/semver": "^7.7.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3"
   },
   "jest": {
     "moduleFileExtensions": [
