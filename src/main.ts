@@ -179,7 +179,21 @@ async function switch_swift(swift_version: string): Promise<void> {
       }
       await run(`Switch Developer Directory to ${developerDirectory}`, async () => {
         await exec.exec('sudo xcode-select', ['-switch', developerDirectory]);
-      })
+      });
+      await run('Set SDKROOT environment variable', async () => {
+        await exec.exec(
+          'xcrun',
+          ['--sdk', 'macosx', '--show-sdk-path'],
+          {
+            listeners: {
+              stdout: (data: Buffer) => {
+                const sdkPath = data.toString().trim();
+                core.exportVariable('SDKROOT', sdkPath);
+              }
+            }
+          }
+        )
+      });
     }
     
     core.addPath(swiftBinDirectory);
