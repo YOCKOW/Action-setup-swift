@@ -20,10 +20,10 @@ jobs:
           - macOS-26
         swift-version:
           - "6.2.1"
-          - DEVELOPMENT-SNAPSHOT-2025-09-07-a
+          - DEVELOPMENT-SNAPSHOT-2025-11-26-a
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install Swift.
         uses: ./
         with:
@@ -32,6 +32,8 @@ jobs:
         run: swift --version
       - name: Run Swift
         run: ./utils/swift-test
+      - name: Test clang
+        run: ./utils/clang-test
   branch-test-with-swift-version-file:
     name: Test with ".swift-version" file.
     strategy:
@@ -41,7 +43,7 @@ jobs:
           - macOS-26
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install Swift.
         uses: ./
         with:
