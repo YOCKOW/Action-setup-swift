@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -eu
+
+declare -r utilsDir="$(cd "$(dirname "$0")" && pwd -L)"
+declare -r repositoryDir="$(dirname "$utilsDir")"
+declare -r clangTestSourceDir="${repositoryDir}/clang-test-source"
+declare -r cTestSourcePath="${clangTestSourceDir}/test.c"
+
+cd $(mktemp -d)
+clang -O3 "$cTestSourcePath" -o ./test
+
+declare output; output="$(./test)"
+if [[ "$output" == "Hello, World!" ]]; then
+  echo "$output"
+else
+  echo "Unexpected output⁉: $output"
+  exit 1
+fi
