@@ -3,6 +3,7 @@
   "version": "1.1.30",
   "description": "Setting Swift up.",
   "main": "lib/main.js",
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "smoke-test": "jest"
