@@ -12,7 +12,6 @@ __pycache__
 !/node_modules/@actions/github
 !/node_modules/@actions/http-client
 !/node_modules/@actions/io
-!/node_modules/@fastify/busboy
 !/node_modules/@octokit/auth-token
 !/node_modules/@octokit/core
 !/node_modules/@octokit/endpoint
@@ -24,13 +23,12 @@ __pycache__
 !/node_modules/@octokit/request-error
 !/node_modules/@octokit/types
 !/node_modules/before-after-hook
-!/node_modules/deprecation
 !/node_modules/encoding
+!/node_modules/fast-content-type-parse
 !/node_modules/iconv-lite
-!/node_modules/once
+!/node_modules/json-with-bigint
 !/node_modules/safer-buffer
 !/node_modules/semver
 !/node_modules/tunnel
 !/node_modules/undici
 !/node_modules/universal-user-agent
-!/node_modules/wrappy

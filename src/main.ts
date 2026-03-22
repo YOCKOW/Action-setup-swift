@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as os from 'os'
 import * as semver from 'semver'
-import * as xcode from './xcode'
+import * as xcode from './xcode.js'
 
 const inputSwiftVersion: string = core.getInput('swift-version');
 const inputSwiftPackageDirectory: string =  core.getInput('swift-package-directory') || '.'
