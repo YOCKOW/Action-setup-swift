@@ -19,19 +19,19 @@
   "author": "YOCKOW",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^3.0.1",
+    "@actions/core": "^3.0.0",
     "@actions/exec": "^3.0.0",
     "@actions/github": "^9.0.0",
     "encoding": "^0.1.13",
-    "semver": "^7.8.5"
+    "semver": "^7.7.4"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "@types/semver": "^7.7.1",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.4.11",
-    "typescript": "^6.0.3"
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3"
   },
   "jest": {
     "moduleFileExtensions": [
