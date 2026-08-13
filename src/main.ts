@@ -1,88 +1,98 @@
+/* *************************************************************************************************
+ main.ts
+   © 2019-2026 YOCKOW.
+     Licensed under MIT License.
+     See "LICENSE.txt" for more information.
+ ************************************************************************************************ */
+
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as os from 'os'
 import * as semver from 'semver'
+import {
+  defaultSwiftPackageDirectory,
+  homeDirectory,
+  workingDirectory,
+  swiftenvDirectory,
+  swiftenvBinDirectory,
+  swiftenvPath,
+  run,
+  execRun,
+  prepareDirectory,
+} from './common.js'
 import * as xcode from './xcode.js'
 
 const inputSwiftVersion: string = core.getInput('swift-version');
-const inputSwiftPackageDirectory: string =  core.getInput('swift-package-directory') || '.'
-
-const homeDirectory = os.homedir();
-const workingDirectory = `${homeDirectory}/action-setup-swift-workspace`;
-const swiftenvDirectory = `${workingDirectory}/.swiftenv`;
-const swiftenvBinDirectory = `${swiftenvDirectory}/bin`;
-const swiftenvPath = `${swiftenvBinDirectory}/swiftenv`;
-
-async function run(name: string, closure: () => Promise<void> ): Promise<void> {
-  core.startGroup(name);
-  await closure();
-  core.endGroup();
-}
-
-async function prepare_directory(): Promise<void> {
-  await run('Prepare working directory...', async () => {
-    await exec.exec('mkdir', ['-p', workingDirectory]);
-  })
-}
+const inputSwiftPackageDirectory: string =  (
+  core.getInput('swift-package-directory') || defaultSwiftPackageDirectory
+);
 
 async function download_swiftenv(): Promise<void> {
-  await run('Download swiftenv...', async () => {
-    await exec.exec('git', ['clone', '--depth', '1', 'https://github.com/kylef/swiftenv.git', swiftenvDirectory]);
-    core.addPath(swiftenvBinDirectory);
-    core.exportVariable('SWIFTENV_ROOT', swiftenvDirectory)
-  })
+  await execRun(
+    'Download swiftenv...',
+    'git', ['clone', '--depth', '1', 'https://github.com/kylef/swiftenv.git', swiftenvDirectory]
+  );
+  core.addPath(swiftenvBinDirectory);
+  core.exportVariable('SWIFTENV_ROOT', swiftenvDirectory);
 }
 
-let _swift_version: string = ''
-async function swift_version(): Promise<string> {
-  if (!_swift_version) {
-    if (inputSwiftVersion) {
-      _swift_version = inputSwiftVersion
-    } else {
-      await run(`Check ".swift-version" file in "${inputSwiftPackageDirectory}".`, async () => {
-        let status = await exec.exec('swiftenv', ['local'], {
-          cwd: inputSwiftPackageDirectory,
-          ignoreReturnCode: true,
-          listeners: {
-            stdout: (data: Buffer) => { _swift_version = data.toString().trim() }
-          }
-        })
-        if (status != 0) {
-          throw Error("Swift Version is not specified.")
-        }
-      })
+const swift_version: () => Promise<string> = (function () {
+  let _swift_version: string | undefined = void(0);
+  return async (): Promise<string> => {
+    if (_swift_version) {
+      return _swift_version;
     }
-  }
-  return _swift_version
-}
+
+    if (inputSwiftVersion) {
+      _swift_version = inputSwiftVersion;
+      return inputSwiftVersion;
+    }
+
+    const result = await execRun(
+      `Check ".swift-version" file in "${inputSwiftPackageDirectory}".`,
+      'swiftenv', ['local'],
+      {
+        cwd: inputSwiftPackageDirectory,
+        ignoreReturnCode: true,
+      }
+    );
+    if (result.exitStatus != 0) {
+      throw Error("Swift Version is not specified.");
+    }
+    _swift_version = result.stdout;
+    return result.stdout;
+  };
+})();
 
 interface XcodeInApplicationsDirectory {
   xcodeInfo: xcode.XcodeInfo
 }
 type SwiftPath = "not_found" | XcodeInApplicationsDirectory | "another"
 
-let _swift_paths: Map<string, SwiftPath | null> = new Map()
-async function swift_path(swift_version: string): Promise<SwiftPath> {
-  if (!_swift_paths.has(swift_version)) {
-    _swift_paths.set(swift_version, "not_found")
-    await run('Check whether or not Swift ' + swift_version + ' is already installed.', async () => {
-      // Avoid calling `mdfind` if possible
-      let xcodesInAppDir = Array.from((await xcode.installedXcodeApplicationsUnderApplicationsDirectory()).values())
-      for (const xcodeInfo of xcodesInAppDir.reverse()) {
-        if (await xcodeInfo.swiftVersion() == swift_version) {
-          _swift_paths.set(swift_version, { xcodeInfo: xcodeInfo })
-          return
+const swift_path: (swift_version: string) => Promise<SwiftPath> = (function () {
+  let _swift_paths: Map<string, SwiftPath | null> = new Map();
+  return async (swift_version: string): Promise<SwiftPath> => {
+    if (!_swift_paths.has(swift_version)) {
+      _swift_paths.set(swift_version, "not_found");
+      await run('Check whether or not Swift ' + swift_version + ' is already installed.', async () => {
+        // Avoid calling `mdfind` if possible
+        const xcodesInAppDir = Array.from((await xcode.installedXcodeApplicationsUnderApplicationsDirectory()).values())
+        for (const xcodeInfo of xcodesInAppDir.reverse()) {
+          if (await xcodeInfo.swiftVersion() == swift_version) {
+            _swift_paths.set(swift_version, { xcodeInfo: xcodeInfo });
+            return;
+          }
         }
-      }
-      
-      let status = await exec.exec('swiftenv', ['prefix', swift_version], {ignoreReturnCode: true});
-      if (status == 0) {
-        _swift_paths.set(swift_version, "another")
-      }
-    })
-  }
-  return _swift_paths.get(swift_version) as SwiftPath
-}
+        
+        const status = await exec.exec('swiftenv', ['prefix', swift_version], {ignoreReturnCode: true});
+        if (status == 0) {
+          _swift_paths.set(swift_version, "another");
+        }
+      });
+    }
+    return _swift_paths.get(swift_version) as SwiftPath
+  };
+}());
 
 async function download_swift(swift_version: string): Promise<void> {
   const __download_swift = async (): Promise<number> => {
@@ -201,7 +211,7 @@ async function switch_swift(swift_version: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  await prepare_directory();
+  await prepareDirectory();
   await download_swiftenv();
   let detected_swift_version = await swift_version()
   let where_swift = await swift_path(detected_swift_version);
