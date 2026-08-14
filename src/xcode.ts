@@ -1,3 +1,10 @@
+/* *************************************************************************************************
+ xcode.ts
+   © 2019-2026 YOCKOW.
+     Licensed under MIT License.
+     See "LICENSE.txt" for more information.
+ ************************************************************************************************ */
+
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import * as fs from 'fs'
@@ -5,7 +12,9 @@ import * as os from 'os'
 import * as path from 'path'
 import * as semver from 'semver'
 import SemVer = semver.SemVer
-
+import {
+  run,
+} from './common.js';
 export class XcodeInfo {
   readonly path: string
   private _version: SemVer | null = null
@@ -103,3 +112,40 @@ export async function latestXcode(): Promise<XcodeInfo> {
   }
   return latest;
 }
+
+export interface XcodeInApplicationsDirectory {
+  xcodeInfo: XcodeInfo
+};
+export type SwiftPath = "not_found" | XcodeInApplicationsDirectory;
+
+export const swiftPath: (version: string) => Promise<SwiftPath> = (function () {
+  const _swiftPaths: Map<string, SwiftPath | null> = new Map();
+  return async (version: string): Promise<SwiftPath> => {
+    if (!_swiftPaths.has(version)) {
+      _swiftPaths.set(version, "not_found");
+      await run('Check whether or not Swift ' + version + ' is already installed.', async () => {
+        // Avoid calling `mdfind` if possible
+        const xcodeInAppDirMap = await installedXcodeApplicationsUnderApplicationsDirectory();
+        const xcodesInAppDir = Array.from(xcodeInAppDirMap.values())
+        for (const xcodeInfo of xcodesInAppDir.reverse()) {
+          if (await xcodeInfo.swiftVersion() == version) {
+            _swiftPaths.set(version, { xcodeInfo: xcodeInfo });
+            return;
+          }
+        }
+
+        const allXcodesMap = await allInstalledXcodeApplications();
+        const allXcodes = Array.from(allXcodesMap.values());
+        for (const xcodeInfo of allXcodes) {
+          if (!xcodeInAppDirMap.has(xcodeInfo.path)) {
+            if (await xcodeInfo.swiftVersion() == version) {
+              _swiftPaths.set(version, { xcodeInfo: xcodeInfo });
+              return;
+            }
+          }
+        }
+      });
+    }
+    return _swiftPaths.get(version) as SwiftPath;
+  }
+})();
