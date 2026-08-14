@@ -30,10 +30,11 @@ export const swiftenvPath = `${swiftenvBinDirectory}/swiftenv`;
  * @param name - The name of the job.
  * @param closure - The job.
  */
-export async function run(name: string, closure: () => Promise<void> ): Promise<void> {
+export async function run<T>(name: string, closure: () => Promise<T>): Promise<T> {
   core.startGroup(name);
-  await closure();
+  const result = await closure();
   core.endGroup();
+  return result;
 }
 
 export type CommandResult = {
