@@ -71,18 +71,18 @@ const swiftVersion: () => Promise<string> = (function () {
   };
 })();
 
-function swiftInstaller(): SwiftInstaller {
-  return Swiftenv.shared;
+function swiftInstaller(version: string): SwiftInstaller {
+  return new Swiftenv(version);
 }
 
 async function main(): Promise<void> {
   await prepareDirectory();
   const detectedSwiftVersion = await swiftVersion();
-  const installer = swiftInstaller();
+  const installer = swiftInstaller(detectedSwiftVersion);
   await installer.setUp();
-  await installer.installSwift(detectedSwiftVersion);
-  await installer.switchSwift(detectedSwiftVersion);
-  await installer.finalize(detectedSwiftVersion);
+  await installer.installSwift();
+  await installer.switchSwift();
+  await installer.finalize();
 }
 
 main().catch(error => { core.setFailed(error.message); })

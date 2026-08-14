@@ -24,19 +24,28 @@ export class SwiftInstaller {
    */
   protected swiftPath: string | undefined = void(0);
 
+  public readonly swiftVersion: string;
+
+  /**
+   * @param version - The version of Swift to be installed.
+   */
+  public constructor(version: string) {
+    this.swiftVersion = version;
+  }
+
   public async setUp() {}
 
-  public async installSwift(version: string) {}
+  public async installSwift() {}
 
-  public async switchSwift(version: string) {}
+  public async switchSwift() {}
 
   // FIXME: There should be more appropriate way...
-  private async _darwinFinalize(swiftVersion: string, swiftBinDirectory: string): Promise<void> {
+  private async _darwinFinalize(swiftBinDirectory: string): Promise<void> {
     if (os.platform() != 'darwin') {
       return;
     }
 
-    const version = swiftVersion;
+    const version = this.swiftVersion;
     let binDirectory = swiftBinDirectory;
 
     // Use release rather than beta
@@ -87,14 +96,14 @@ export class SwiftInstaller {
     core.exportVariable('SDKROOT', sdkRootResult.stdout);
   }
 
-  public async finalize(version: string) {
+  public async finalize() {
     if (!this.swiftPath) {
       throw new Error("`swiftPath` is undefined.");
     }
 
     if (os.platform() == 'darwin') {
       const swiftBinDirectory = this.swiftPath.replace(/\/swift$/, '');
-      await this._darwinFinalize(version, swiftBinDirectory);
+      await this._darwinFinalize(swiftBinDirectory);
     }
   }
 }

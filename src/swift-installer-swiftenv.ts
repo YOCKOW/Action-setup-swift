@@ -28,33 +28,30 @@ export class Swiftenv extends installer.SwiftInstaller {
   /** The path to the executable of 'swiftenv'. */
   public static readonly path: string = `${Swiftenv.binDirectory}/swiftenv`;
 
-  private _doneSetUp: Boolean;
-
-  private constructor() {
-    super();
-    this._doneSetUp = false;
-  }
-
-  public static readonly shared: Swiftenv = new Swiftenv();
-
-  private async _downloadRepository() {
+  private static _doneSetUp: Boolean = false;
+  private static async _setUp(): Promise<void> {
+    if (Swiftenv._doneSetUp) {
+      return;
+    }
+    Swiftenv._doneSetUp = true;
     await execRun(
       'Download swiftenv...',
       'git', ['clone', '--depth', '1', 'https://github.com/kylef/swiftenv.git', Swiftenv.directory]
     );
-  }
-
-  public override async setUp(): Promise<void> {
-    if (this._doneSetUp) {
-      return
-    }
-    this._doneSetUp = true;
-    await this._downloadRepository();
     core.addPath(Swiftenv.binDirectory);
     core.exportVariable('SWIFTENV_ROOT', Swiftenv.directory);
   }
 
-  public override async installSwift(version: string): Promise<void> {
+  public constructor(version: string) {
+    super(version);
+  }
+
+  public override async setUp(): Promise<void> {
+    await Swiftenv._setUp();
+  }
+
+  public override async installSwift(): Promise<void> {
+    const version = this.swiftVersion;
     const whereSwift = await xcode.swiftPath(version);
     if (whereSwift != "not_found") {
       core.info(version + ' is already installed.');
@@ -107,7 +104,8 @@ export class Swiftenv extends installer.SwiftInstaller {
     });
   }
 
-  public override async switchSwift(version: string): Promise<void> {
+  public override async switchSwift(): Promise<void> {
+    const version = this.swiftVersion;
     const whereSwift = await xcode.swiftPath(version);
     if (typeof whereSwift !== 'string') {
       this.swiftPath = whereSwift.xcodeInfo.path + '/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift'
@@ -123,7 +121,7 @@ export class Swiftenv extends installer.SwiftInstaller {
     }
   }
 
-  public override async finalize(version: string): Promise<void> {
-    await super.finalize(version);
+  public override async finalize(): Promise<void> {
+    await super.finalize();
   }
 }
