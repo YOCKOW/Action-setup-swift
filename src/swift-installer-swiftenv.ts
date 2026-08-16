@@ -7,6 +7,7 @@
 
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
+import * as path from 'path';
 import * as installer from './swift-installer.js';
 import {
   workingDirectory,
@@ -107,8 +108,8 @@ export class Swiftenv extends installer.SwiftInstaller {
   public override async switchSwift(): Promise<void> {
     const version = this.swiftVersion;
     const whereSwift = await xcode.swiftPath(version);
-    if (typeof whereSwift !== 'string') {
-      this.swiftPath = whereSwift.xcodeInfo.path + '/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift'
+    if (whereSwift instanceof xcode.XcodeInfo) {
+      this.toolchain = whereSwift
     } else {
       await exec.exec(Swiftenv.path, ['global', version]);
       await exec.exec(Swiftenv.path, ['versions']);
@@ -117,7 +118,14 @@ export class Swiftenv extends installer.SwiftInstaller {
         Swiftenv.path,
         ['which', 'swift']
       )
-      this.swiftPath = whichResult.stdout;
+      const swiftPath = whichResult.stdout;
+      const binDirectory = path.dirname(swiftPath);
+      const toolchainDirectory =  path.dirname(path.dirname(binDirectory));
+      this.toolchain = {
+        toolchainDirectory: toolchainDirectory,
+        binDirectory: binDirectory,
+        swiftPath: swiftPath,
+      }
     }
   }
 

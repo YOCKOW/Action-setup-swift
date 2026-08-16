@@ -14,15 +14,18 @@ import {
 } from './common.js'
 import * as xcode from './xcode.js';
 
+export interface ActiveToolchain {
+  toolchainDirectory: string;
+  binDirectory: string;
+  /** The absolute path to 'swift' binary. */
+  swiftPath: string; 
+};
+
 /**
  * A base (abstract) class to install Swift toolchain.
  */
 export class SwiftInstaller {
-  /**
-   * The path to the binary of 'swift'.
-   * (e.g.) `/usr/bin/swift`
-   */
-  protected swiftPath: string | undefined = void(0);
+  protected toolchain: ActiveToolchain | undefined = void(0);
 
   public readonly swiftVersion: string;
 
@@ -39,55 +42,28 @@ export class SwiftInstaller {
 
   public async switchSwift() {}
 
-  // FIXME: There should be more appropriate way...
-  private async _darwinFinalize(swiftBinDirectory: string): Promise<void> {
+  private async _darwinFinalize(): Promise<void> {
     if (os.platform() != 'darwin') {
       return;
     }
 
-    const version = this.swiftVersion;
-    let binDirectory = swiftBinDirectory;
+    if (!this.toolchain) {
+      throw new Error("`toolchain` is undefined.");
+    }
 
-    // Use release rather than beta
-    const betaRegexResult = (new RegExp('^(/.+/Xcode[^/]*)_beta.app')).exec(binDirectory);
-    if (betaRegexResult) {
-      core.info("Xcode is beta version.")
-      const expectedReleaseVersion = await new xcode.XcodeInfo(betaRegexResult[0]).version();
-      const expectedReleasePath = betaRegexResult[1] + '.app';
-      const expectedReleaseXcode = new xcode.XcodeInfo(expectedReleasePath);
-      if (version == await expectedReleaseXcode.swiftVersion().catch()) {
-        core.info(`Xcode release version is found.`)
-        binDirectory = binDirectory.replace('_beta', '')
-      } else {
-        const xcodes = Array.from((await xcode.allInstalledXcodeApplications()).values())
-        for (let xcodeInfo of xcodes) {
-          if (
-            semver.eq(await xcodeInfo.version(), expectedReleaseVersion) &&
-            version == await xcodeInfo.swiftVersion()
-          ) {
-            core.info(`Xcode release version is found.`)
-            binDirectory = xcodeInfo.path + '/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin'
-            break
-          }
-        }
+    const version = this.swiftVersion;
+    if (this.toolchain instanceof xcode.XcodeInfo) {
+      const releaseVersion = await this.toolchain.equivalentReleaseVersion();
+      if (releaseVersion) {
+        this.toolchain = releaseVersion;
       }
     }
 
-    const xcodePathRegExp = new RegExp('^/Applications/Xcode[^/]*.app/Contents/Developer');
-    const xcodeMatched = binDirectory.match(xcodePathRegExp);
-    let developerDirectory = '/Applications/Xcode.app/Contents/Developer'
-    if (xcodeMatched && xcodeMatched[0]) {
-      developerDirectory = xcodeMatched[0]
-    } else {
-      const latestXcodeInfo = await xcode.latestXcode();
-      developerDirectory = `${latestXcodeInfo.path}/Contents/Developer`
-    }
+    const activeXcode =
+      (this.toolchain instanceof xcode.XcodeInfo) ? this.toolchain
+      : await xcode.latestXcode();
+    await activeXcode.activateDeveloperDirectory();
 
-    await execRun(
-      `Switch Developer Directory to ${developerDirectory}`,
-      'sudo xcode-select',
-      ['-switch', developerDirectory]
-    );
     const sdkRootResult = await execRun(
       'Set SDKROOT environment variable',
       'xcrun',
@@ -97,13 +73,12 @@ export class SwiftInstaller {
   }
 
   public async finalize() {
-    if (!this.swiftPath) {
-      throw new Error("`swiftPath` is undefined.");
+    if (!this.toolchain) {
+      throw new Error("`toolchain` is undefined.");
     }
 
     if (os.platform() == 'darwin') {
-      const swiftBinDirectory = this.swiftPath.replace(/\/swift$/, '');
-      await this._darwinFinalize(swiftBinDirectory);
+      await this._darwinFinalize();
     }
   }
 }
