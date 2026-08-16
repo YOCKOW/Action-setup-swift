@@ -61,7 +61,7 @@ export class SwiftInstaller {
 
     const activeXcode =
       (this.toolchain instanceof xcode.XcodeInfo) ? this.toolchain
-      : await xcode.latestXcode();
+      : await xcode.XcodeInfo.latest();
     await activeXcode.activateDeveloperDirectory();
 
     const sdkRootResult = await execRun(

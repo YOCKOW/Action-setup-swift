@@ -7,11 +7,10 @@
 
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
-import * as fs from 'fs'
-import * as os from 'os'
-import * as path from 'path'
-import * as semver from 'semver'
-import SemVer = semver.SemVer
+import * as fs from 'fs';
+import * as path from 'path';
+import * as semver from 'semver';
+import SemVer = semver.SemVer;
 import {
   execRun,
   osIsDarwin,
@@ -173,6 +172,7 @@ export class XcodeInfo {
 export declare namespace XcodeInfo {
   export function installedUnderApplicationsDirectory(): Promise<Map<XcodePath, XcodeInfo>>;
   export function all(): Promise<Map<XcodePath, XcodeInfo>>;
+  export function latest(): Promise<XcodeInfo>;
 }
 
 XcodeInfo.installedUnderApplicationsDirectory = (() => {
@@ -231,19 +231,33 @@ XcodeInfo.all = (() => {
   };
 })();
 
-export async function latestXcode(): Promise<XcodeInfo> {
-  const list = await XcodeInfo.all();
-  let latest: XcodeInfo | null = null;
-  for (const info of Array.from(list.values())) {
-    if (!latest || semver.gt(await info.version(), await latest.version())) {
-      latest = info;
+XcodeInfo.latest = (() => {
+  let latestXcode: XcodeInfo | undefined = void(0);
+  return async (): Promise<XcodeInfo> => {
+    if (!osIsDarwin) {
+      throw new Error("Called on non-Darwin?!");
     }
-  }
-  if (latest == null) {
-    throw "Cant't detect latest Xcode."
-  }
-  return latest;
-}
+
+    if (typeof latestXcode != "undefined") {
+      return latestXcode;
+    }
+
+    const result = await run("Determining the latest Xcode...", async (): Promise<XcodeInfo> => {
+      let currentLatest: XcodeInfo | undefined = void(0);
+      for (const info of Array.from((await XcodeInfo.all()).values())) {
+        if (!currentLatest || semver.gt(await info.version(), await currentLatest.version())) {
+          currentLatest = info;
+        }
+      }
+      if (!currentLatest) {
+        throw new Error("No Xcode.app?!");
+      }
+      return currentLatest;
+    });
+    latestXcode = result;
+    return result;
+  };
+})()
 
 export interface XcodeInApplicationsDirectory {
   xcodeInfo: XcodeInfo
