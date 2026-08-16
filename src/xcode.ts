@@ -14,10 +14,13 @@ import * as semver from 'semver'
 import SemVer = semver.SemVer
 import {
   execRun,
+  osIsDarwin,
   run,
 } from './common.js';
+
+export type XcodePath = string;
 export class XcodeInfo {
-  readonly path: string
+  readonly path: XcodePath;
   private _version: SemVer | null = null
   private _swiftVersion: string | null = null
 
@@ -167,21 +170,36 @@ export class XcodeInfo {
     );
   }
 }
+export declare namespace XcodeInfo {
+  export function installedUnderApplicationsDirectory(): Promise<Map<XcodePath, XcodeInfo>>;
+}
 
-let _installedXcodeApplicationsUnderApplicationsDirectory: Map<string, XcodeInfo> = new Map()
-export async function installedXcodeApplicationsUnderApplicationsDirectory(): Promise<Map<string, XcodeInfo>> {
-  if (os.platform() == 'darwin' && _installedXcodeApplicationsUnderApplicationsDirectory.size < 1) {
-    const dirents = fs.readdirSync('/Applications', {withFileTypes: true})
-    for (const dirent of dirents) {
-      if (dirent.isDirectory() && (/^Xcode([^/])*.app/).test(dirent.name)) {
-        const xcodePath = path.join('/Applications', dirent.name)
-        const xcodeInfo = new XcodeInfo(xcodePath)
-        _installedXcodeApplicationsUnderApplicationsDirectory.set(xcodePath, xcodeInfo)
+XcodeInfo.installedUnderApplicationsDirectory = (() => {
+  let installedXcodeApplicationsUnderApplicationsDirectory: Map<XcodePath, XcodeInfo> | undefined = void(0);
+  return async (): Promise<Map<XcodePath, XcodeInfo>> => {
+    if (typeof installedXcodeApplicationsUnderApplicationsDirectory != "undefined") {
+      return installedXcodeApplicationsUnderApplicationsDirectory;
+    }
+
+    if (!osIsDarwin) {
+      const emptyMap = new Map<XcodePath, XcodeInfo>();
+      installedXcodeApplicationsUnderApplicationsDirectory = emptyMap;
+      return emptyMap;
+    }
+
+    const result = new Map<XcodePath,XcodeInfo>();
+    const dirEntries = fs.readdirSync('/Applications', {withFileTypes: true});
+    for (const entry of dirEntries) {
+      if (entry.isDirectory() && (/^Xcode([^/])*.app/).test(entry.name)) {
+        const xcodePath = path.join('/Applications', entry.name);
+        const xcodeInfo = new XcodeInfo(xcodePath);
+        result.set(xcodePath, xcodeInfo);
       }
     }
-  }
-  return _installedXcodeApplicationsUnderApplicationsDirectory
-}
+    installedXcodeApplicationsUnderApplicationsDirectory = result;
+    return result;
+  };
+})();
 
 
 let _allInstalledXcodeApplications: Map<string, XcodeInfo> = new Map()
@@ -229,9 +247,9 @@ export const swiftPath: (version: string) => Promise<SwiftPath> = (function () {
       _swiftPaths.set(version, "not_found");
       await run('Check whether or not Swift ' + version + ' is already installed.', async () => {
         // Avoid calling `mdfind` if possible
-        const xcodeInAppDirMap = await installedXcodeApplicationsUnderApplicationsDirectory();
+        const xcodeInAppDirMap = await XcodeInfo.installedUnderApplicationsDirectory();
         const xcodesInAppDir = Array.from(xcodeInAppDirMap.values())
-        for (const xcodeInfo of xcodesInAppDir.reverse()) {
+        for (const xcodeInfo of xcodesInAppDir.sort((x1, x2) => (x1.path > x2.path) ? -1 : 1 )) {
           if (await xcodeInfo.swiftVersion() == version) {
             _swiftPaths.set(version, { xcodeInfo: xcodeInfo });
             return;

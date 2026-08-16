@@ -24,6 +24,8 @@ export const swiftenvDirectory = `${workingDirectory}/.swiftenv`;
 export const swiftenvBinDirectory = `${swiftenvDirectory}/bin`;
 export const swiftenvPath = `${swiftenvBinDirectory}/swiftenv`;
 
+export const osIsDarwin: boolean = os.platform() == 'darwin';
+
 // ----- Functions ----- //
 
 /**
