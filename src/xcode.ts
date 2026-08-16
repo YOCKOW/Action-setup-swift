@@ -173,6 +173,7 @@ export declare namespace XcodeInfo {
   export function installedUnderApplicationsDirectory(): Promise<Map<XcodePath, XcodeInfo>>;
   export function all(): Promise<Map<XcodePath, XcodeInfo>>;
   export function latest(): Promise<XcodeInfo>;
+  export function forSwift(version: string): Promise<XcodeInfo | null>;
 }
 
 XcodeInfo.installedUnderApplicationsDirectory = (() => {
@@ -259,24 +260,22 @@ XcodeInfo.latest = (() => {
   };
 })()
 
-export interface XcodeInApplicationsDirectory {
-  xcodeInfo: XcodeInfo
-};
-export type SwiftPath = "not_found" | XcodeInApplicationsDirectory;
+XcodeInfo.forSwift = (() => {
+  const swiftMap: Map<string /* Swift version */, XcodeInfo | null> = new Map();
+  return async (version: string): Promise<XcodeInfo | null> => {
+    if (swiftMap.has(version)) {
+      return swiftMap.get(version) || null;
+    }
 
-export const swiftPath: (version: string) => Promise<SwiftPath> = (function () {
-  const _swiftPaths: Map<string, SwiftPath | null> = new Map();
-  return async (version: string): Promise<SwiftPath> => {
-    if (!_swiftPaths.has(version)) {
-      _swiftPaths.set(version, "not_found");
-      await run('Check whether or not Swift ' + version + ' is already installed.', async () => {
+    const foundXcode = await run(
+      'Check whether or not Swift ' + version + ' is already installed.',
+      async (): Promise<XcodeInfo | null> => {
         // Avoid calling `mdfind` if possible
         const xcodeInAppDirMap = await XcodeInfo.installedUnderApplicationsDirectory();
-        const xcodesInAppDir = Array.from(xcodeInAppDirMap.values())
+        const xcodesInAppDir = Array.from(xcodeInAppDirMap.values());
         for (const xcodeInfo of xcodesInAppDir.sort((x1, x2) => (x1.path > x2.path) ? -1 : 1 )) {
           if (await xcodeInfo.swiftVersion() == version) {
-            _swiftPaths.set(version, { xcodeInfo: xcodeInfo });
-            return;
+            return xcodeInfo;
           }
         }
 
@@ -285,13 +284,15 @@ export const swiftPath: (version: string) => Promise<SwiftPath> = (function () {
         for (const xcodeInfo of allXcodes) {
           if (!xcodeInAppDirMap.has(xcodeInfo.path)) {
             if (await xcodeInfo.swiftVersion() == version) {
-              _swiftPaths.set(version, { xcodeInfo: xcodeInfo });
-              return;
+              return xcodeInfo;
             }
           }
         }
-      });
-    }
-    return _swiftPaths.get(version) as SwiftPath;
-  }
+
+        return null;
+      }
+    );
+    swiftMap.set(version, foundXcode);
+    return foundXcode;
+  };
 })();

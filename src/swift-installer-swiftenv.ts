@@ -53,8 +53,8 @@ export class Swiftenv extends installer.SwiftInstaller {
 
   public override async installSwift(): Promise<void> {
     const version = this.swiftVersion;
-    const whereSwift = await xcode.swiftPath(version);
-    if (whereSwift != "not_found") {
+    const whereSwift = await xcode.XcodeInfo.forSwift(version);
+    if (whereSwift) {
       core.info(version + ' is already installed.');
       return;
     }
@@ -107,7 +107,7 @@ export class Swiftenv extends installer.SwiftInstaller {
 
   public override async switchSwift(): Promise<void> {
     const version = this.swiftVersion;
-    const whereSwift = await xcode.swiftPath(version);
+    const whereSwift = await xcode.XcodeInfo.forSwift(version);
     if (whereSwift instanceof xcode.XcodeInfo) {
       this.toolchain = whereSwift
     } else {
