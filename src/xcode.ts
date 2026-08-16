@@ -134,7 +134,7 @@ export class XcodeInfo {
         return expectedReleaseXcode;
       }
 
-      const xcodes = Array.from((await allInstalledXcodeApplications()).values())
+      const xcodes = Array.from((await XcodeInfo.all()).values())
       for (let xcodeInfo of xcodes) {
         if (
           semver.eq(await xcodeInfo.version(), expectedReleaseVersion) &&
@@ -145,7 +145,7 @@ export class XcodeInfo {
         }
       }
     } else {
-      const xcodes = Array.from((await allInstalledXcodeApplications()).values())
+      const xcodes = Array.from((await XcodeInfo.all()).values())
       for (let xcodeInfo of xcodes) {
         if (xcodeInfo.isEqualTo(this)) {
           continue;
@@ -172,6 +172,7 @@ export class XcodeInfo {
 }
 export declare namespace XcodeInfo {
   export function installedUnderApplicationsDirectory(): Promise<Map<XcodePath, XcodeInfo>>;
+  export function all(): Promise<Map<XcodePath, XcodeInfo>>;
 }
 
 XcodeInfo.installedUnderApplicationsDirectory = (() => {
@@ -201,28 +202,37 @@ XcodeInfo.installedUnderApplicationsDirectory = (() => {
   };
 })();
 
-
-let _allInstalledXcodeApplications: Map<string, XcodeInfo> = new Map()
-export async function allInstalledXcodeApplications(): Promise<Map<string, XcodeInfo>> {
-  if (os.platform() == 'darwin' && _allInstalledXcodeApplications.size < 1) {
-    let paths: string[] = [];
-    await exec.exec('mdfind', ['kMDItemCFBundleIdentifier == "com.apple.dt.Xcode"'], {
-      ignoreReturnCode: true,
-      listeners: {
-        stdout: (data: Buffer) => {
-          paths = data.toString().split(/\r\n|\r|\n/).map(path => path.trim()).filter(path => path != '');
-        }
-      }
-    })
-    for (const xcodePath of paths) {
-      _allInstalledXcodeApplications.set(xcodePath, new XcodeInfo(xcodePath))
+XcodeInfo.all = (() => {
+  let allXcodes: Map<XcodePath, XcodeInfo> | undefined = void(0);
+  return async (): Promise<Map<XcodePath, XcodeInfo>> => {
+    if (typeof allXcodes != "undefined") {
+      return allXcodes;
     }
-  }
-  return _allInstalledXcodeApplications
-}
+
+    if (!osIsDarwin) {
+      const emptyMap = new Map<XcodePath, XcodeInfo>();
+      allXcodes = emptyMap;
+      return emptyMap;
+    }
+
+    const result = new Map<XcodePath, XcodeInfo>();
+    const commandResult = await execRun(
+      "Searching all Xcode applications...",
+      'mdfind',
+      ['kMDItemCFBundleIdentifier == "com.apple.dt.Xcode"'],
+      { ignoreReturnCode: true }
+    );
+    const paths = commandResult.stdout.split(/\r\n|\r|\n/).map(path => path.trim()).filter(path => path != '');
+    for (const path of paths) {
+      result.set(path, new XcodeInfo(path));
+    }
+    allXcodes = result;
+    return result;
+  };
+})();
 
 export async function latestXcode(): Promise<XcodeInfo> {
-  const list = await allInstalledXcodeApplications();
+  const list = await XcodeInfo.all();
   let latest: XcodeInfo | null = null;
   for (const info of Array.from(list.values())) {
     if (!latest || semver.gt(await info.version(), await latest.version())) {
@@ -256,7 +266,7 @@ export const swiftPath: (version: string) => Promise<SwiftPath> = (function () {
           }
         }
 
-        const allXcodesMap = await allInstalledXcodeApplications();
+        const allXcodesMap = await XcodeInfo.all();
         const allXcodes = Array.from(allXcodesMap.values());
         for (const xcodeInfo of allXcodes) {
           if (!xcodeInAppDirMap.has(xcodeInfo.path)) {
