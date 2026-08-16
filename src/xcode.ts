@@ -7,16 +7,19 @@
 
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
-import * as fs from 'fs'
-import * as os from 'os'
-import * as path from 'path'
-import * as semver from 'semver'
-import SemVer = semver.SemVer
+import * as fs from 'fs';
+import * as path from 'path';
+import * as semver from 'semver';
+import SemVer = semver.SemVer;
 import {
+  execRun,
+  osIsDarwin,
   run,
 } from './common.js';
+
+export type XcodePath = string;
 export class XcodeInfo {
-  readonly path: string
+  readonly path: XcodePath;
   private _version: SemVer | null = null
   private _swiftVersion: string | null = null
 
@@ -24,26 +27,37 @@ export class XcodeInfo {
     this.path = path
   }
 
+  public isEqualTo(other: XcodeInfo): boolean {
+    return this.path == other.path;
+  }
+
+  private async _readDefaultsForKey(key: string): Promise<string> {
+    const result = await execRun(
+      `Xcode: Reading defaults for ${key}...`,
+      'defaults',
+      ['read', `${this.path}/Contents/Info`, key]
+    );
+    return result.stdout.trim();
+  }
+
   async version(): Promise<SemVer> {
     if (!this._version) {
-      let versionString = ''
-      await exec.exec('defaults', ['read', `${this.path}/Contents/Info`, 'CFBundleShortVersionString'], {
-        listeners: {
-          stdout: (data: Buffer) => { versionString = data.toString().trim() }
-        }
-      })
-      if ((/^\d+\.\d+$/).test(versionString)) { versionString += '.0'; }
-      let ver = semver.parse(versionString)
-      if (ver == null) {
-        throw "Invalid Version String."
+      let versionString = await this._readDefaultsForKey('CFBundleShortVersionString');
+      if ((/^\d+\.\d+$/).test(versionString)) {
+        versionString += '.0';
       }
-      this._version = ver
+      const parsedVersion = semver.parse(versionString);
+      if (parsedVersion == null) {
+        throw new Error("Invalid Version String.");
+      }
+      this._version = parsedVersion;
+      return parsedVersion;
     }
-    return this._version as SemVer
+    return this._version;
   }
 
   async swiftVersion(): Promise<string> {
-    if (!this._swiftVersion) {
+    if (typeof this._swiftVersion != "string") {
       let swiftVersionString = ''
       await exec.exec('xcrun', ['swift', '--version'], {
         env: {
@@ -60,92 +74,230 @@ export class XcodeInfo {
       this._swiftVersion = result[1]
       core.info(`Swift version is ${this._swiftVersion} for Xcode at ${this.path}`)
     }
-    return this._swiftVersion as string
+    return this._swiftVersion;
   }
-}
 
-let _installedXcodeApplicationsUnderApplicationsDirectory: Map<string, XcodeInfo> = new Map()
-export async function installedXcodeApplicationsUnderApplicationsDirectory(): Promise<Map<string, XcodeInfo>> {
-  if (os.platform() == 'darwin' && _installedXcodeApplicationsUnderApplicationsDirectory.size < 1) {
-    const dirents = fs.readdirSync('/Applications', {withFileTypes: true})
-    for (const dirent of dirents) {
-      if (dirent.isDirectory() && (/^Xcode([^/])*.app/).test(dirent.name)) {
-        const xcodePath = path.join('/Applications', dirent.name)
-        const xcodeInfo = new XcodeInfo(xcodePath)
-        _installedXcodeApplicationsUnderApplicationsDirectory.set(xcodePath, xcodeInfo)
-      }
+  get developerDirectory(): string {
+    return path.join(this.path, '/Contents/Developer');
+  }
+
+  get toolchainDirectory(): string {
+    return path.join(this.developerDirectory, '/Toolchains/XcodeDefault.xctoolchain');
+  }
+
+  get binDirectory(): string {
+    return path.join(this.toolchainDirectory, '/usr/bin');
+  }
+
+  get swiftPath(): string {
+    return path.join(this.binDirectory, 'swift');
+  }
+
+  private static readonly _betaRegex = new RegExp('^(/.+/Xcode[^/]*)_beta.app');
+
+  /** @returns `true` if Xcode _may be_ beta. */
+  public async isBeta(): Promise<boolean> {
+    // FIXME: There should be more appropriate way...
+    if (XcodeInfo._betaRegex.test(this.path)) {
+      core.info(`The path to this Xcode contains "beta": ${this.path}`);
+      return true;
     }
-  }
-  return _installedXcodeApplicationsUnderApplicationsDirectory
-}
 
+    const iconFile = await this._readDefaultsForKey('CFBundleIconFile');
+    if ((/beta/i).test(iconFile)) {
+      core.info(`The value of 'CFBundleIconFile' contains "beta": ${iconFile} (Xcode path: ${this.path})`);
+      return true;
+    }
 
-let _allInstalledXcodeApplications: Map<string, XcodeInfo> = new Map()
-export async function allInstalledXcodeApplications(): Promise<Map<string, XcodeInfo>> {
-  if (os.platform() == 'darwin' && _allInstalledXcodeApplications.size < 1) {
-    let paths: string[] = [];
-    await exec.exec('mdfind', ['kMDItemCFBundleIdentifier == "com.apple.dt.Xcode"'], {
-      ignoreReturnCode: true,
-      listeners: {
-        stdout: (data: Buffer) => {
-          paths = data.toString().split(/\r\n|\r|\n/).map(path => path.trim()).filter(path => path != '');
+    const iconName = await this._readDefaultsForKey('CFBundleIconName');
+    if ((/beta/i).test(iconName)) {
+      core.info(`The value of 'CFBundleIconName' contains "beta": ${iconName} (Xcode path: ${this.path})`);
+      return true;
+    }
+
+    return false;
+  } 
+
+  public async equivalentReleaseVersion(): Promise<XcodeInfo | null> {
+    if (!(await this.isBeta())) {
+      return this;
+    }
+
+    core.info(`Xcode at '${this.path}' is beta version.`);
+    const expectedSwiftVersion = await this.swiftVersion();
+
+    const betaRegexResult = XcodeInfo._betaRegex.exec(this.path);
+    if (betaRegexResult) {
+      core.debug("`betaRegexResult`: " + betaRegexResult.toString());
+
+      const expectedReleaseVersion = await new XcodeInfo(betaRegexResult[0]).version();
+      const expectedReleasePath = betaRegexResult[1] + '.app';
+      const expectedReleaseXcode = new XcodeInfo(expectedReleasePath);
+      if (expectedSwiftVersion == await expectedReleaseXcode.swiftVersion().catch()) {
+        core.info(`Xcode release version is found.`);
+        return expectedReleaseXcode;
+      }
+
+      const xcodes = Array.from((await XcodeInfo.all()).values())
+      for (const xcodeInfo of xcodes) {
+        if (
+          semver.eq(await xcodeInfo.version(), expectedReleaseVersion) &&
+          expectedSwiftVersion == await xcodeInfo.swiftVersion()
+        ) {
+          core.info(`Xcode release version is found.`)
+          return xcodeInfo;
         }
       }
-    })
-    for (const xcodePath of paths) {
-      _allInstalledXcodeApplications.set(xcodePath, new XcodeInfo(xcodePath))
+    } else {
+      const xcodes = Array.from((await XcodeInfo.all()).values())
+      for (const xcodeInfo of xcodes) {
+        if (xcodeInfo.isEqualTo(this)) {
+          continue;
+        }
+
+        if (expectedSwiftVersion == await xcodeInfo.swiftVersion()) {
+          core.info(`Xcode release version is found.`)
+          return xcodeInfo;
+        }
+      }
     }
+
+    return null;
   }
-  return _allInstalledXcodeApplications
+
+  public async activateDeveloperDirectory(): Promise<void> {
+    const developerDirectory = this.developerDirectory;
+    await execRun(
+      `Switch Developer Directory to ${developerDirectory}`,
+      'sudo xcode-select',
+      ['-switch', developerDirectory]
+    );
+  }
+}
+export declare namespace XcodeInfo {
+  export function installedUnderApplicationsDirectory(): Map<XcodePath, XcodeInfo>;
+  export function all(): Promise<Map<XcodePath, XcodeInfo>>;
+  export function latest(): Promise<XcodeInfo>;
+  export function forSwift(version: string): Promise<XcodeInfo | null>;
 }
 
-export async function latestXcode(): Promise<XcodeInfo> {
-  const list = await allInstalledXcodeApplications();
-  let latest: XcodeInfo | null = null;
-  for (const info of Array.from(list.values())) {
-    if (!latest || semver.gt(await info.version(), await latest.version())) {
-      latest = info;
+XcodeInfo.installedUnderApplicationsDirectory = (() => {
+  let installedXcodeApplicationsUnderApplicationsDirectory: Map<XcodePath, XcodeInfo> | undefined = void(0);
+  return (): Map<XcodePath, XcodeInfo> => {
+    if (typeof installedXcodeApplicationsUnderApplicationsDirectory != "undefined") {
+      return installedXcodeApplicationsUnderApplicationsDirectory;
     }
-  }
-  if (latest == null) {
-    throw "Cant't detect latest Xcode."
-  }
-  return latest;
-}
 
-export interface XcodeInApplicationsDirectory {
-  xcodeInfo: XcodeInfo
-};
-export type SwiftPath = "not_found" | XcodeInApplicationsDirectory;
+    if (!osIsDarwin) {
+      const emptyMap = new Map<XcodePath, XcodeInfo>();
+      installedXcodeApplicationsUnderApplicationsDirectory = emptyMap;
+      return emptyMap;
+    }
 
-export const swiftPath: (version: string) => Promise<SwiftPath> = (function () {
-  const _swiftPaths: Map<string, SwiftPath | null> = new Map();
-  return async (version: string): Promise<SwiftPath> => {
-    if (!_swiftPaths.has(version)) {
-      _swiftPaths.set(version, "not_found");
-      await run('Check whether or not Swift ' + version + ' is already installed.', async () => {
+    const result = new Map<XcodePath,XcodeInfo>();
+    const dirEntries = fs.readdirSync('/Applications', {withFileTypes: true});
+    for (const entry of dirEntries) {
+      if (entry.isDirectory() && (/^Xcode([^/])*.app/).test(entry.name)) {
+        const xcodePath = path.join('/Applications', entry.name);
+        const xcodeInfo = new XcodeInfo(xcodePath);
+        result.set(xcodePath, xcodeInfo);
+      }
+    }
+    installedXcodeApplicationsUnderApplicationsDirectory = result;
+    return result;
+  };
+})();
+
+XcodeInfo.all = (() => {
+  let allXcodes: Map<XcodePath, XcodeInfo> | undefined = void(0);
+  return async (): Promise<Map<XcodePath, XcodeInfo>> => {
+    if (typeof allXcodes != "undefined") {
+      return allXcodes;
+    }
+
+    if (!osIsDarwin) {
+      const emptyMap = new Map<XcodePath, XcodeInfo>();
+      allXcodes = emptyMap;
+      return emptyMap;
+    }
+
+    const result = new Map<XcodePath, XcodeInfo>();
+    const commandResult = await execRun(
+      "Searching all Xcode applications...",
+      'mdfind',
+      ['kMDItemCFBundleIdentifier == "com.apple.dt.Xcode"'],
+      { ignoreReturnCode: true }
+    );
+    const paths = commandResult.stdout.split(/\r\n|\r|\n/).map(path => path.trim()).filter(path => path != '');
+    for (const path of paths) {
+      result.set(path, new XcodeInfo(path));
+    }
+    allXcodes = result;
+    return result;
+  };
+})();
+
+XcodeInfo.latest = (() => {
+  let latestXcode: XcodeInfo | undefined = void(0);
+  return async (): Promise<XcodeInfo> => {
+    if (!osIsDarwin) {
+      throw new Error("Called on non-Darwin?!");
+    }
+
+    if (typeof latestXcode != "undefined") {
+      return latestXcode;
+    }
+
+    const result = await run("Determining the latest Xcode...", async (): Promise<XcodeInfo> => {
+      let currentLatest: XcodeInfo | undefined = void(0);
+      for (const info of Array.from((await XcodeInfo.all()).values())) {
+        if (!currentLatest || semver.gt(await info.version(), await currentLatest.version())) {
+          currentLatest = info;
+        }
+      }
+      if (!currentLatest) {
+        throw new Error("No Xcode.app?!");
+      }
+      return currentLatest;
+    });
+    latestXcode = result;
+    return result;
+  };
+})()
+
+XcodeInfo.forSwift = (() => {
+  const swiftMap: Map<string /* Swift version */, XcodeInfo | null> = new Map();
+  return async (version: string): Promise<XcodeInfo | null> => {
+    if (swiftMap.has(version)) {
+      return swiftMap.get(version) || null;
+    }
+
+    const foundXcode = await run(
+      'Check whether or not Swift ' + version + ' is already installed.',
+      async (): Promise<XcodeInfo | null> => {
         // Avoid calling `mdfind` if possible
-        const xcodeInAppDirMap = await installedXcodeApplicationsUnderApplicationsDirectory();
-        const xcodesInAppDir = Array.from(xcodeInAppDirMap.values())
-        for (const xcodeInfo of xcodesInAppDir.reverse()) {
+        const xcodeInAppDirMap = XcodeInfo.installedUnderApplicationsDirectory();
+        const xcodesInAppDir = Array.from(xcodeInAppDirMap.values());
+        for (const xcodeInfo of xcodesInAppDir.sort((x1, x2) => (x1.path > x2.path) ? -1 : 1 )) {
           if (await xcodeInfo.swiftVersion() == version) {
-            _swiftPaths.set(version, { xcodeInfo: xcodeInfo });
-            return;
+            return xcodeInfo;
           }
         }
 
-        const allXcodesMap = await allInstalledXcodeApplications();
+        const allXcodesMap = await XcodeInfo.all();
         const allXcodes = Array.from(allXcodesMap.values());
         for (const xcodeInfo of allXcodes) {
           if (!xcodeInAppDirMap.has(xcodeInfo.path)) {
             if (await xcodeInfo.swiftVersion() == version) {
-              _swiftPaths.set(version, { xcodeInfo: xcodeInfo });
-              return;
+              return xcodeInfo;
             }
           }
         }
-      });
-    }
-    return _swiftPaths.get(version) as SwiftPath;
-  }
+
+        return null;
+      }
+    );
+    swiftMap.set(version, foundXcode);
+    return foundXcode;
+  };
 })();

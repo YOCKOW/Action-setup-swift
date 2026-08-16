@@ -29,7 +29,7 @@ const inputSwiftPackageDirectory: string = ((packageDirectory: string): string =
 const swiftVersion: () => Promise<string> = (function () {
   let _swift_version: string | undefined = void(0);
   return async (): Promise<string> => {
-    if (_swift_version) {
+    if (typeof _swift_version != "undefined") {
       return _swift_version;
     }
 
@@ -52,7 +52,7 @@ const swiftVersion: () => Promise<string> = (function () {
         } catch (error: unknown) {
           core.debug(String(error));
         } finally {
-          fh?.close();
+          await fh?.close();
         }
         return content;
       });
@@ -61,7 +61,7 @@ const swiftVersion: () => Promise<string> = (function () {
     let currentDirectoryForSwiftVersion = inputSwiftPackageDirectory;
     while (currentDirectoryForSwiftVersion && currentDirectoryForSwiftVersion != "/") {
       const swiftVersionFileContent = await __checkSwiftVerionFile(currentDirectoryForSwiftVersion);
-      if (swiftVersionFileContent) {
+      if (typeof swiftVersionFileContent != "undefined") {
         _swift_version = swiftVersionFileContent;
         return swiftVersionFileContent;
       }
@@ -71,18 +71,18 @@ const swiftVersion: () => Promise<string> = (function () {
   };
 })();
 
-function swiftInstaller(): SwiftInstaller {
-  return Swiftenv.shared;
+function swiftInstaller(version: string): SwiftInstaller {
+  return new Swiftenv(version);
 }
 
 async function main(): Promise<void> {
   await prepareDirectory();
   const detectedSwiftVersion = await swiftVersion();
-  const installer = swiftInstaller();
+  const installer = swiftInstaller(detectedSwiftVersion);
   await installer.setUp();
-  await installer.installSwift(detectedSwiftVersion);
-  await installer.switchSwift(detectedSwiftVersion);
-  await installer.finalize(detectedSwiftVersion);
+  await installer.installSwift();
+  await installer.switchSwift();
+  await installer.finalize();
 }
 
-main().catch(error => { core.setFailed(error.message); })
+main().catch((error: unknown) => { core.setFailed(String(error)); })
