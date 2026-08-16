@@ -98,17 +98,20 @@ export class XcodeInfo {
   /** @returns `true` if Xcode _may be_ beta. */
   public async isBeta(): Promise<boolean> {
     // FIXME: There should be more appropriate way...
-    if (XcodeInfo._betaRegex.test(this.binDirectory)) {
+    if (XcodeInfo._betaRegex.test(this.path)) {
+      core.info(`The path to this Xcode contains "beta": ${this.path}`);
       return true;
     }
 
     const iconFile = await this._readDefaultsForKey('CFBundleIconFile');
     if ((/beta/i).test(iconFile)) {
+      core.info(`The value of 'CFBundleIconFile' contains "beta": ${iconFile} (Xcode path: ${this.path})`);
       return true;
     }
 
     const iconName = await this._readDefaultsForKey('CFBundleIconName');
     if ((/beta/i).test(iconName)) {
+      core.info(`The value of 'CFBundleIconName' contains "beta": ${iconName} (Xcode path: ${this.path})`);
       return true;
     }
 
@@ -123,8 +126,10 @@ export class XcodeInfo {
     core.info(`Xcode at '${this.path}' is beta version.`);
     const expectedSwiftVersion = await this.swiftVersion();
 
-    const betaRegexResult = XcodeInfo._betaRegex.exec(this.binDirectory);
+    const betaRegexResult = XcodeInfo._betaRegex.exec(this.path);
     if (betaRegexResult) {
+      core.debug("`betaRegexResult`: " + betaRegexResult.toString());
+
       const expectedReleaseVersion = await new XcodeInfo(betaRegexResult[0]).version();
       const expectedReleasePath = betaRegexResult[1] + '.app';
       const expectedReleaseXcode = new XcodeInfo(expectedReleasePath);
