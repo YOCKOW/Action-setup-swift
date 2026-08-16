@@ -7,7 +7,6 @@
 
 import * as core from '@actions/core';
 import * as os from 'os';
-import * as semver from 'semver';
 
 import {
   execRun,
@@ -51,7 +50,6 @@ export class SwiftInstaller {
       throw new Error("`toolchain` is undefined.");
     }
 
-    const version = this.swiftVersion;
     if (this.toolchain instanceof xcode.XcodeInfo) {
       const releaseVersion = await this.toolchain.equivalentReleaseVersion();
       if (releaseVersion) {

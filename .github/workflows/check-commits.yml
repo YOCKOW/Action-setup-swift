@@ -26,16 +26,19 @@ jobs:
         run: ./utils/check-necessary-modules
       - name: Check whether or not unnecessary modules are installed.
         run: ./utils/check-unnecessary-modules
-  check-traspilation:
-    name: Check whether or not transpilation is completed.
+  lint-scripts-and-check-traspilation:
+    name: Lint scripts and check whether or not transpilation is completed.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
         with:
           node-version: 24.x
+      - name: Install modules
+        run: npm install
+      - name: Lint scripts
+        run: npm run lint
       - name: Check transpilation
         run: |
-          npm install
           npm run build
           git diff --exit-code -- ./lib

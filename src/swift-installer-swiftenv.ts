@@ -29,7 +29,7 @@ export class Swiftenv extends installer.SwiftInstaller {
   /** The path to the executable of 'swiftenv'. */
   public static readonly path: string = `${Swiftenv.binDirectory}/swiftenv`;
 
-  private static _doneSetUp: Boolean = false;
+  private static _doneSetUp: boolean = false;
   private static async _setUp(): Promise<void> {
     if (Swiftenv._doneSetUp) {
       return;
@@ -95,7 +95,7 @@ export class Swiftenv extends installer.SwiftInstaller {
         if (exitStatus == 0) {
           break;
         }
-        const failureMessage = `\`${commandDesc}\` failed with exit code ${exitStatus}.`;
+        const failureMessage = `\`${commandDesc}\` failed with exit code ${exitStatus.toString()}.`;
         if (__retryableExitStatus(exitStatus)) {
           core.info(failureMessage);
         } else {

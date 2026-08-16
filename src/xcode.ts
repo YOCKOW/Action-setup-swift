@@ -46,18 +46,18 @@ export class XcodeInfo {
       if ((/^\d+\.\d+$/).test(versionString)) {
         versionString += '.0';
       }
-      let ver = semver.parse(versionString);
-      if (ver == null) {
-        throw "Invalid Version String."
+      const parsedVersion = semver.parse(versionString);
+      if (parsedVersion == null) {
+        throw new Error("Invalid Version String.");
       }
-      this._version = ver;
-      return ver;
+      this._version = parsedVersion;
+      return parsedVersion;
     }
     return this._version;
   }
 
   async swiftVersion(): Promise<string> {
-    if (!this._swiftVersion) {
+    if (typeof this._swiftVersion != "string") {
       let swiftVersionString = ''
       await exec.exec('xcrun', ['swift', '--version'], {
         env: {
@@ -74,7 +74,7 @@ export class XcodeInfo {
       this._swiftVersion = result[1]
       core.info(`Swift version is ${this._swiftVersion} for Xcode at ${this.path}`)
     }
-    return this._swiftVersion as string
+    return this._swiftVersion;
   }
 
   get developerDirectory(): string {
@@ -119,7 +119,7 @@ export class XcodeInfo {
   } 
 
   public async equivalentReleaseVersion(): Promise<XcodeInfo | null> {
-    if (!this.isBeta) {
+    if (!(await this.isBeta())) {
       return this;
     }
 
@@ -139,7 +139,7 @@ export class XcodeInfo {
       }
 
       const xcodes = Array.from((await XcodeInfo.all()).values())
-      for (let xcodeInfo of xcodes) {
+      for (const xcodeInfo of xcodes) {
         if (
           semver.eq(await xcodeInfo.version(), expectedReleaseVersion) &&
           expectedSwiftVersion == await xcodeInfo.swiftVersion()
@@ -150,7 +150,7 @@ export class XcodeInfo {
       }
     } else {
       const xcodes = Array.from((await XcodeInfo.all()).values())
-      for (let xcodeInfo of xcodes) {
+      for (const xcodeInfo of xcodes) {
         if (xcodeInfo.isEqualTo(this)) {
           continue;
         }
@@ -175,7 +175,7 @@ export class XcodeInfo {
   }
 }
 export declare namespace XcodeInfo {
-  export function installedUnderApplicationsDirectory(): Promise<Map<XcodePath, XcodeInfo>>;
+  export function installedUnderApplicationsDirectory(): Map<XcodePath, XcodeInfo>;
   export function all(): Promise<Map<XcodePath, XcodeInfo>>;
   export function latest(): Promise<XcodeInfo>;
   export function forSwift(version: string): Promise<XcodeInfo | null>;
@@ -183,7 +183,7 @@ export declare namespace XcodeInfo {
 
 XcodeInfo.installedUnderApplicationsDirectory = (() => {
   let installedXcodeApplicationsUnderApplicationsDirectory: Map<XcodePath, XcodeInfo> | undefined = void(0);
-  return async (): Promise<Map<XcodePath, XcodeInfo>> => {
+  return (): Map<XcodePath, XcodeInfo> => {
     if (typeof installedXcodeApplicationsUnderApplicationsDirectory != "undefined") {
       return installedXcodeApplicationsUnderApplicationsDirectory;
     }
@@ -276,7 +276,7 @@ XcodeInfo.forSwift = (() => {
       'Check whether or not Swift ' + version + ' is already installed.',
       async (): Promise<XcodeInfo | null> => {
         // Avoid calling `mdfind` if possible
-        const xcodeInAppDirMap = await XcodeInfo.installedUnderApplicationsDirectory();
+        const xcodeInAppDirMap = XcodeInfo.installedUnderApplicationsDirectory();
         const xcodesInAppDir = Array.from(xcodeInAppDirMap.values());
         for (const xcodeInfo of xcodesInAppDir.sort((x1, x2) => (x1.path > x2.path) ? -1 : 1 )) {
           if (await xcodeInfo.swiftVersion() == version) {
