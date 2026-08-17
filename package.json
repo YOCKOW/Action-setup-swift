@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "eslint .",
     "build": "tsc",
-    "smoke-test": "jest"
+    "smoke-test": "vitest run"
   },
   "keywords": [
     "GitHub Actions",
@@ -28,30 +28,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/jest": "^30.0.0",
     "@types/node": "^24.13.2",
     "@types/semver": "^7.7.1",
     "eslint": "^10.8.1",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.4.6",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.67.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "ts",
-      "js"
-    ],
-    "transform": {
-      "^.+\\.ts$": "ts-jest"
-    },
-    "globals": {
-      "ts-jest": {
-        "tsconfig": "tsconfig.json"
-      }
-    },
-    "testMatch": [
-      "**/__tests__/**/*.test.ts"
-    ]
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.10"
   }
 }
