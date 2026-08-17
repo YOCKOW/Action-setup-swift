@@ -14,10 +14,10 @@ import {
 import * as xcode from './xcode.js';
 
 export interface ActiveToolchain {
-  toolchainDirectory: string;
-  binDirectory: string;
+  readonly toolchainDirectory: string;
+  readonly binDirectory: string;
   /** The absolute path to 'swift' binary. */
-  swiftPath: string; 
+  readonly swiftPath: string;
 };
 
 /**

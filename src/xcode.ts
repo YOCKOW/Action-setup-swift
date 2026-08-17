@@ -175,15 +175,15 @@ export class XcodeInfo {
   }
 }
 export declare namespace XcodeInfo {
-  export function installedUnderApplicationsDirectory(): Map<XcodePath, XcodeInfo>;
-  export function all(): Promise<Map<XcodePath, XcodeInfo>>;
+  export function installedUnderApplicationsDirectory(): ReadonlyMap<XcodePath, XcodeInfo>;
+  export function all(): Promise<ReadonlyMap<XcodePath, XcodeInfo>>;
   export function latest(): Promise<XcodeInfo>;
   export function forSwift(version: string): Promise<XcodeInfo | null>;
 }
 
 XcodeInfo.installedUnderApplicationsDirectory = (() => {
   let installedXcodeApplicationsUnderApplicationsDirectory: Map<XcodePath, XcodeInfo> | undefined = void(0);
-  return (): Map<XcodePath, XcodeInfo> => {
+  return (): ReadonlyMap<XcodePath, XcodeInfo> => {
     if (typeof installedXcodeApplicationsUnderApplicationsDirectory != "undefined") {
       return installedXcodeApplicationsUnderApplicationsDirectory;
     }
@@ -210,7 +210,7 @@ XcodeInfo.installedUnderApplicationsDirectory = (() => {
 
 XcodeInfo.all = (() => {
   let allXcodes: Map<XcodePath, XcodeInfo> | undefined = void(0);
-  return async (): Promise<Map<XcodePath, XcodeInfo>> => {
+  return async (): Promise<ReadonlyMap<XcodePath, XcodeInfo>> => {
     if (typeof allXcodes != "undefined") {
       return allXcodes;
     }
