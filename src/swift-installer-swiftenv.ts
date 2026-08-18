@@ -13,8 +13,9 @@ import {
   workingDirectory,
   run,
   execRun,
+  osIsDarwin,
 } from './common.js';
-import * as xcode from './xcode.js';
+import { XcodeInfo } from './xcode.js';
 
 
 /**
@@ -53,7 +54,7 @@ export class Swiftenv extends installer.SwiftInstaller {
 
   public override async installSwift(): Promise<void> {
     const version = this.swiftVersion;
-    const whereSwift = await xcode.XcodeInfo.forSwift(version);
+    const whereSwift = await XcodeInfo.forSwift(version);
     if (whereSwift) {
       core.info(version + ' is already installed.');
       return;
@@ -107,9 +108,9 @@ export class Swiftenv extends installer.SwiftInstaller {
 
   public override async switchSwift(): Promise<void> {
     const version = this.swiftVersion;
-    const whereSwift = await xcode.XcodeInfo.forSwift(version);
-    if (whereSwift instanceof xcode.XcodeInfo) {
-      this.toolchain = whereSwift
+    const whereSwift = await XcodeInfo.forSwift(version);
+    if (whereSwift instanceof XcodeInfo) {
+      this.toolchain = await whereSwift.equivalentReleaseVersion() || whereSwift;
     } else {
       await exec.exec(Swiftenv.path, ['global', version]);
       await exec.exec(Swiftenv.path, ['versions']);
@@ -131,5 +132,13 @@ export class Swiftenv extends installer.SwiftInstaller {
 
   public override async finalize(): Promise<void> {
     await super.finalize();
+
+    if (osIsDarwin) {
+      const activeXcode = (
+        (this.toolchain instanceof XcodeInfo) ? this.toolchain
+        : await XcodeInfo.latest()
+      );
+      await activeXcode.activate();
+    }
   }
 }

@@ -173,7 +173,24 @@ export class XcodeInfo {
       ['-switch', developerDirectory]
     );
   }
+
+  public async setSDKRootEnvironmentVariable(): Promise<void> {
+    const sdkRootResult = await execRun(
+      'Set SDKROOT environment variable',
+      'xcrun',
+      ['--sdk', 'macosx', '--show-sdk-path'],
+    );
+    core.exportVariable('SDKROOT', sdkRootResult.stdout);
+  }
+
+  public async activate(): Promise<void> {
+    await Promise.all([
+      this.activateDeveloperDirectory(),
+      this.setSDKRootEnvironmentVariable(),
+    ])
+  }
 }
+
 export declare namespace XcodeInfo {
   export function installedUnderApplicationsDirectory(): ReadonlyMap<XcodePath, XcodeInfo>;
   export function all(): Promise<ReadonlyMap<XcodePath, XcodeInfo>>;
@@ -268,6 +285,10 @@ XcodeInfo.latest = (() => {
 XcodeInfo.forSwift = (() => {
   const swiftMap: Map<string /* Swift version */, XcodeInfo | null> = new Map();
   return async (version: string): Promise<XcodeInfo | null> => {
+    if (!osIsDarwin) {
+      return null;
+    }
+
     if (swiftMap.has(version)) {
       return swiftMap.get(version) || null;
     }
