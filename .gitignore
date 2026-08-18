@@ -23,11 +23,8 @@ __pycache__
 !/node_modules/@octokit/request-error
 !/node_modules/@octokit/types
 !/node_modules/before-after-hook
-!/node_modules/encoding
-!/node_modules/fast-content-type-parse
-!/node_modules/iconv-lite
+!/node_modules/content-type
 !/node_modules/json-with-bigint
-!/node_modules/safer-buffer
 !/node_modules/semver
 !/node_modules/tunnel
 !/node_modules/undici

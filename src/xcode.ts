@@ -173,17 +173,34 @@ export class XcodeInfo {
       ['-switch', developerDirectory]
     );
   }
+
+  public async setSDKRootEnvironmentVariable(): Promise<void> {
+    const sdkRootResult = await execRun(
+      'Set SDKROOT environment variable',
+      'xcrun',
+      ['--sdk', 'macosx', '--show-sdk-path'],
+    );
+    core.exportVariable('SDKROOT', sdkRootResult.stdout);
+  }
+
+  public async activate(): Promise<void> {
+    await Promise.all([
+      this.activateDeveloperDirectory(),
+      this.setSDKRootEnvironmentVariable(),
+    ])
+  }
 }
+
 export declare namespace XcodeInfo {
-  export function installedUnderApplicationsDirectory(): Map<XcodePath, XcodeInfo>;
-  export function all(): Promise<Map<XcodePath, XcodeInfo>>;
+  export function installedUnderApplicationsDirectory(): ReadonlyMap<XcodePath, XcodeInfo>;
+  export function all(): Promise<ReadonlyMap<XcodePath, XcodeInfo>>;
   export function latest(): Promise<XcodeInfo>;
   export function forSwift(version: string): Promise<XcodeInfo | null>;
 }
 
 XcodeInfo.installedUnderApplicationsDirectory = (() => {
   let installedXcodeApplicationsUnderApplicationsDirectory: Map<XcodePath, XcodeInfo> | undefined = void(0);
-  return (): Map<XcodePath, XcodeInfo> => {
+  return (): ReadonlyMap<XcodePath, XcodeInfo> => {
     if (typeof installedXcodeApplicationsUnderApplicationsDirectory != "undefined") {
       return installedXcodeApplicationsUnderApplicationsDirectory;
     }
@@ -210,7 +227,7 @@ XcodeInfo.installedUnderApplicationsDirectory = (() => {
 
 XcodeInfo.all = (() => {
   let allXcodes: Map<XcodePath, XcodeInfo> | undefined = void(0);
-  return async (): Promise<Map<XcodePath, XcodeInfo>> => {
+  return async (): Promise<ReadonlyMap<XcodePath, XcodeInfo>> => {
     if (typeof allXcodes != "undefined") {
       return allXcodes;
     }
@@ -268,6 +285,10 @@ XcodeInfo.latest = (() => {
 XcodeInfo.forSwift = (() => {
   const swiftMap: Map<string /* Swift version */, XcodeInfo | null> = new Map();
   return async (version: string): Promise<XcodeInfo | null> => {
+    if (!osIsDarwin) {
+      return null;
+    }
+
     if (swiftMap.has(version)) {
       return swiftMap.get(version) || null;
     }

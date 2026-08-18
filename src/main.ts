@@ -13,9 +13,11 @@ import {
   defaultSwiftPackageDirectory,
   run,
   prepareDirectory,
-} from './common.js'
+} from './common.js';
+import { XcodeInfo } from './xcode.js';
 import { SwiftInstaller } from './swift-installer.js';
 import { Swiftenv } from './swift-installer-swiftenv.js';
+import { PreinstalledXcode } from './swift-installer-preinstalled-xcode.js';
 
 const inputSwiftVersion: string = core.getInput('swift-version');
 const inputSwiftPackageDirectory: string = ((packageDirectory: string): string => {
@@ -71,14 +73,21 @@ const swiftVersion: () => Promise<string> = (function () {
   };
 })();
 
-function swiftInstaller(version: string): SwiftInstaller {
+/**
+ * @param version - Swift version
+ */
+async function swiftInstaller(version: string): Promise<SwiftInstaller> {
+  const properXcode = await XcodeInfo.forSwift(version);
+  if (properXcode instanceof XcodeInfo) {
+    return new PreinstalledXcode(version, properXcode);
+  }
   return new Swiftenv(version);
 }
 
 async function main(): Promise<void> {
   await prepareDirectory();
   const detectedSwiftVersion = await swiftVersion();
-  const installer = swiftInstaller(detectedSwiftVersion);
+  const installer = await swiftInstaller(detectedSwiftVersion);
   await installer.setUp();
   await installer.installSwift();
   await installer.switchSwift();
