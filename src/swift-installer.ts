@@ -33,11 +33,11 @@ export class SwiftInstaller {
 
   public async switchSwift() {}
 
-  /* eslint-disable "@typescript-eslint/require-await" */
+  /* eslint-disable @typescript-eslint/require-await */
   public async finalize() {
     if (!this.toolchain) {
       throw new Error("`toolchain` is undefined.");
     }
   }
-  /* eslint-enable "@typescript-eslint/require-await" */
+  /* eslint-enable @typescript-eslint/require-await */
 }
