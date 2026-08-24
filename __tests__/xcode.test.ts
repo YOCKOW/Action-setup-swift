@@ -5,11 +5,7 @@
      See "LICENSE.txt" for more information.
  ************************************************************************************************ */
 
-import {
-  describe,
-  test,
-  expect,
-} from 'vitest';
+/// <reference types="vitest/globals" />
 import * as common from '../src/common';
 import * as xcode from '../src/xcode';
 

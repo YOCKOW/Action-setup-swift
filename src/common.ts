@@ -7,6 +7,9 @@
 
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
+import * as fs from 'fs';
+import { IncomingHttpHeaders, IncomingMessage } from 'http';
+import * as https from 'https';
 import * as os from 'os';
 
 // ----- Constants ----- //
@@ -94,4 +97,85 @@ export async function execRun(
 
 export async function prepareDirectory(): Promise<void> {
   await execRun('Prepare working directory...', 'mkdir', ['-p', workingDirectory]);
+}
+
+export interface ResponseHeader {
+  statusCode: number;
+  reasonPhrase: string | undefined;
+  fields: IncomingHttpHeaders;
+}
+export async function responseHeader(url: URL): Promise<ResponseHeader> {
+  const request = https.request(url, {method: 'HEAD'});
+  const response = await new Promise(
+    (resolve: (response: IncomingMessage) => void, reject: (anError: Error) => void) => {
+      try {
+        request.on('response', resolve);
+        request.on('error', reject);
+        request.end();
+      } catch (anError) {
+        if (anError instanceof Error) {
+          reject(anError);
+        } else {
+          reject(new Error(String(anError)));
+        }
+      }
+    }
+  );
+  
+  const statusCode = response.statusCode;
+  if (typeof statusCode == 'undefined') {
+    throw new Error(`Missing status code. URL=${url}`);
+  }
+  return {
+    statusCode: statusCode,
+    reasonPhrase: response.statusMessage,
+    fields: response.headers,
+  };
+}
+
+export async function redirectedURL(initialURL: URL, maxRedirectCount: number = 20): Promise<URL> {
+  let currentCount = 0;
+  let currentURL = initialURL;
+  REDIRECTING: while (true) {
+    const currentResponseHeader = await responseHeader(currentURL);
+    if (currentResponseHeader.statusCode == 201 || Math.floor(currentResponseHeader.statusCode / 100) == 3) {
+      const location = currentResponseHeader.fields.location;
+      if (typeof location == 'undefined') {
+        throw new Error(`Missing 'Location' header field for ${currentURL}`);
+      }
+
+      currentCount += 1;
+      if (currentCount > maxRedirectCount) {
+        throw new Error(`Too many redirects from ${initialURL}`);
+      }
+
+      if ((/^https?:\/\//).test(location)) {
+        currentURL = new URL(location);
+      } else {
+        currentURL = new URL(location, currentURL);
+      }
+    } else {
+      break REDIRECTING;
+    }
+  }
+  return currentURL;
+}
+
+export async function download(url: URL, path: string, maxRedirectCount: number = 20): Promise<void> {
+  const finalDestination = await redirectedURL(url, maxRedirectCount);
+  const localFile = fs.createWriteStream(path);
+  await new Promise<void>((resolve, reject) => {
+    const request = https.request(finalDestination, (response) => {
+      response.pipe(localFile);
+      response.on("close", () => {
+        localFile.close();
+        resolve();
+      })
+      response.on("error", (anError: Error) => {
+        localFile.close();
+        reject(anError);
+      })
+    });
+    request.end();
+  });
 }
