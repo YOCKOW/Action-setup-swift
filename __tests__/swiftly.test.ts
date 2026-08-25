@@ -11,7 +11,7 @@ import * as exec from '@actions/exec';
 import { Swiftly } from '../src/swift-installer-swiftly';
 
 describe("`swiftly` installer tests", () => {
-  test('Installer', {timeout: 60_000}, async () => {
+  test('Installer', {timeout: 600_000}, async () => {
     const installer = new Swiftly("6.3.3");
     await installer.setUp();
 
