@@ -419,3 +419,32 @@ export async function download(url: URL, path: string, maxRedirectCount: number 
     request.end();
   });
 }
+
+
+export const aptInstall: (...packages: string[]) => Promise<void> = (() => {
+  let updated = false;
+  return async (...packages: string[]): Promise<void> => {
+    if (osIsDarwin) {
+      throw new Error("Called on Darwin?!");
+    }
+
+    await navigator.locks.request("apt-get update", async () => {
+      if (updated) {
+        return;
+      }
+      await exec("sudo apt-get", ["update"]);
+      updated = true;
+    });
+
+    await exec(
+      `Install ${packages.join(', ')}`,
+      "sudo apt-get",
+      [
+        "install",
+        "-y",
+        "--no-install-recommends",
+        ...packages,
+      ]
+    );
+  };
+})();
