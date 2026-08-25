@@ -382,6 +382,15 @@ export async function download(url: URL, path: string, maxRedirectCount: number 
   const localFile = fs.createWriteStream(path);
   await new Promise<void>((resolve, reject) => {
     const request = https.request(finalDestination, (response) => {
+      if (typeof response.statusCode !== 'number' || Math.floor(response.statusCode / 100) != 2) {
+        const reasonDesc: string = (
+          (isUndefined(response.statusCode)) ? "Unexpected error"
+          : (isUndefined(response.statusMessage)) ? `HTTP status ${response.statusCode.toString()}`
+          : `HTTP status ${response.statusCode.toString()} (${response.statusMessage})`
+        );
+        throw new Error(`Download failed: ${reasonDesc}`);
+      }
+
       response.pipe(localFile);
       response.on("close", () => {
         localFile.close();
