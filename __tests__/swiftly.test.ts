@@ -7,16 +7,21 @@
 
 /// <reference types="node" />
 /// <reference types="vitest/globals" />
-import * as exec from '@actions/exec';
+import { exec, warn } from '../src/common';
 import { Swiftly } from '../src/swift-installer-swiftly';
 
 describe("`swiftly` installer tests", () => {
   test('Installer', {timeout: 600_000}, async () => {
+    if (process.env["GITHUB_ACTIONS"] == void 0) {
+      warn("This test runs with GitHub Actions.");
+      return;
+    }
+
     const installer = new Swiftly("6.3.3");
     await installer.setUp();
 
     try {
-      exec.exec("swiftly", ["--version"]);
+      await exec("swiftly", ["--version"]);
     } finally {
       await installer.tearDown();
     }

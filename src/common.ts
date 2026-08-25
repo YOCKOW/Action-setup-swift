@@ -89,6 +89,10 @@ export function info(message: string) {
   }
 }
 
+export function warn(message: string) {
+  core.warning(`⚠️ ${message}`);
+}
+
 export type CommandResult = {
   exitStatus: number,
   stdout: string,
