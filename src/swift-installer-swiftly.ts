@@ -59,6 +59,8 @@ export class Swiftly extends SwiftInstaller {
         [
           'init',
           '--skip-install',
+          '--quiet-shell-followup',
+          '--assume-yes',
         ]
       );
     } else {
@@ -78,6 +80,8 @@ export class Swiftly extends SwiftInstaller {
         [
           'init',
           ' --skip-install',
+          '--quiet-shell-followup',
+          '--assume-yes',
         ]
       )
     }
