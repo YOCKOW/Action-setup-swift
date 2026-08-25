@@ -379,7 +379,7 @@ export async function redirectedURL(initialURL: URL, maxRedirectCount: number = 
 
 export async function download(url: URL, path: string, maxRedirectCount: number = 20): Promise<void> {
   const finalDestination = await redirectedURL(url, maxRedirectCount);
-  if (url.href != finalDestination.hash) {
+  if (url.href != finalDestination.href) {
     info(`download: Redirected from ${url.toString()}\n` +
          `                     to   ${finalDestination.toString()}`);
   }
