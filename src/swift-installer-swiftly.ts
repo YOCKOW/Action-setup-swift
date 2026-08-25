@@ -29,68 +29,64 @@ export class Swiftly extends SwiftInstaller {
   
   private static _doneSetUp: boolean = false;
   private static async _setUp(): Promise<void> {
-    if (Swiftly._doneSetUp) {
-      return;
-    }
-    Swiftly._doneSetUp = true;
-    await fs.promises.mkdir(Swiftly.homeDirectory, {recursive: true});
-    const localPackagedBinaryFilename = Swiftly._packagedBinaryURL.pathname.replace(/^.*\//, '');
-    const localPackagedBinaryPath = path.join(Swiftly.homeDirectory, localPackagedBinaryFilename);
-    await download(Swiftly._packagedBinaryURL, localPackagedBinaryPath);
+    await navigator.locks.request("Swiftly._setUp", async () => {
+      if (Swiftly._doneSetUp) {
+        return;
+      }
+      await fs.promises.mkdir(Swiftly.homeDirectory, {recursive: true});
+      const localPackagedBinaryFilename = Swiftly._packagedBinaryURL.pathname.replace(/^.*\//, '');
+      const localPackagedBinaryPath = path.join(Swiftly.homeDirectory, localPackagedBinaryFilename);
+      await download(Swiftly._packagedBinaryURL, localPackagedBinaryPath);
 
-    core.exportVariable("SWIFTLY_HOME_DIR", Swiftly.homeDirectory);
-    core.exportVariable("SWIFTLY_BIN_DIR", Swiftly.binDirectory);
-    core.exportVariable("SWIFTLY_TOOLCHAINS_DIR", Swiftly.toolchainsDirectory);
+      core.exportVariable("SWIFTLY_HOME_DIR", Swiftly.homeDirectory);
+      core.exportVariable("SWIFTLY_BIN_DIR", Swiftly.binDirectory);
+      core.exportVariable("SWIFTLY_TOOLCHAINS_DIR", Swiftly.toolchainsDirectory);
 
-    if (osIsDarwin) {
+      if (osIsDarwin) {
+        await exec(
+          'Install swiftly',
+          'installer',
+          [
+            '-pkg', localPackagedBinaryFilename,
+            '-target', 'CurrentUserHomeDirectory',
+          ],
+          {
+            cwd: Swiftly.homeDirectory,
+          }
+        );
+      } else {
+        await aptInstall("bash", "tar", "libcurl4-openssl-dev");
+        await exec(
+          "Unarchive swiftly",
+          "tar",
+          [
+            'zxf', localPackagedBinaryFilename
+          ],
+          {
+            cwd: Swiftly.homeDirectory
+          }
+        );
+      }
+
       await exec(
-        'Install swiftly',
-        'installer',
+        "Initialize swiftly",
+        (
+          (osIsDarwin) ? `${os.homedir()}/.swiftly/bin/swiftly`
+          : `${Swiftly.homeDirectory}/swiftly`
+        ),
         [
-          '-pkg', localPackagedBinaryFilename,
-          '-target', 'CurrentUserHomeDirectory',
-        ],
-        {
-          cwd: Swiftly.homeDirectory,
-        }
+          'init',
+          '--skip-install',
+          '--quiet-shell-followup',
+          '--assume-yes',
+        ]
       );
-    } else {
-      await aptInstall("bash", "tar", "libcurl4-openssl-dev");
-      await exec(
-        "Unarchive swiftly",
-        "tar",
-        [
-          'zxf', localPackagedBinaryFilename
-        ],
-        {
-          cwd: Swiftly.homeDirectory
-        }
-      );
-    }
+      core.addPath(Swiftly.binDirectory);
 
-    const pathToSwiftly = (
-      (osIsDarwin) ? `${os.homedir()}/.swiftly/bin/swiftly`
-      : `${Swiftly.homeDirectory}/swiftly`
-    );
-    await exec(
-      "Initialize swiftly",
-      pathToSwiftly,
-      [
-        'init',
-        '--skip-install',
-        '--quiet-shell-followup',
-        '--assume-yes',
-      ]
-    );
-    await exec(
-      "Link swiftly",
-      pathToSwiftly,
-      [
-        'link',
-      ]
-    );
+      await exec("Link swiftly", "swiftly", ["link"]);
 
-    core.addPath(Swiftly.binDirectory);
+      Swiftly._doneSetUp = true;
+    });
   }
 
   private static async _tearDown(): Promise<void> {
