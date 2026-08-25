@@ -349,12 +349,18 @@ export async function responseHeader(url: URL): Promise<ResponseHeader> {
   };
 }
 
-export async function redirectedURL(initialURL: URL, maxRedirectCount: number = 20): Promise<URL> {
+export async function redirectedURL(
+  initialURL: URL,
+  maxRedirectCount: number = 20,
+  requireStatusIsOK: boolean = true
+): Promise<URL> {
   let currentCount = 0;
   let currentURL = initialURL;
   REDIRECTING: while (true) {
     const currentResponseHeader = await responseHeader(currentURL);
-    if (currentResponseHeader.statusCode == 201 || Math.floor(currentResponseHeader.statusCode / 100) == 3) {
+    const statusCode = currentResponseHeader.statusCode;
+    const statusCategory = Math.floor(statusCode / 100);
+    if (statusCode == 201 || statusCategory == 3) {
       const location = currentResponseHeader.fields.location;
       if (typeof location == 'undefined') {
         throw new Error(`Missing 'Location' header field for ${currentURL}`);
@@ -371,6 +377,13 @@ export async function redirectedURL(initialURL: URL, maxRedirectCount: number = 
         currentURL = new URL(location, currentURL);
       }
     } else {
+      if (requireStatusIsOK && statusCategory != 2) {
+        let errorMessage = `HTTP Status ${statusCode.toString()}`
+        if (!isUndefined(currentResponseHeader.reasonPhrase)) {
+          errorMessage += ` (${currentResponseHeader.reasonPhrase})`;
+        }
+        throw new Error(errorMessage);
+      }
       break REDIRECTING;
     }
   }
@@ -378,7 +391,7 @@ export async function redirectedURL(initialURL: URL, maxRedirectCount: number = 
 }
 
 export async function download(url: URL, path: string, maxRedirectCount: number = 20): Promise<void> {
-  const finalDestination = await redirectedURL(url, maxRedirectCount);
+  const finalDestination = await redirectedURL(url, maxRedirectCount, /* requireStatusIsOK */ true);
   if (url.href != finalDestination.href) {
     info(`download: Redirected from ${url.toString()}\n` +
          `                     to   ${finalDestination.toString()}`);
@@ -389,15 +402,6 @@ export async function download(url: URL, path: string, maxRedirectCount: number 
   const localFile = fs.createWriteStream(path);
   await new Promise<void>((resolve, reject) => {
     const request = https.request(finalDestination, (response) => {
-      if (typeof response.statusCode !== 'number' || Math.floor(response.statusCode / 100) != 2) {
-        const reasonDesc: string = (
-          (isUndefined(response.statusCode)) ? "Unexpected error"
-          : (isUndefined(response.statusMessage)) ? `HTTP status ${response.statusCode.toString()}`
-          : `HTTP status ${response.statusCode.toString()} (${response.statusMessage})`
-        );
-        throw new Error(`Download failed: ${reasonDesc}`);
-      }
-
       response.pipe(localFile);
       response.on("close", () => {
         localFile.close();
