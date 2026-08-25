@@ -24,7 +24,7 @@ export class Swiftly extends SwiftInstaller {
 
   private static _packagedBinaryURL: URL = (
     (osIsDarwin) ? new URL("https://download.swift.org/swiftly/darwin/swiftly.pkg")
-    : new URL(`https://download.swift.org/swiftly/linux/swiftly-${process.arch}.tar.gz`)
+    : new URL(`https://download.swift.org/swiftly/linux/swiftly-${os.machine()}.tar.gz`)
   );
   
   private static _doneSetUp: boolean = false;
