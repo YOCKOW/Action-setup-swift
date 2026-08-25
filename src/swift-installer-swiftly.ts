@@ -18,9 +18,9 @@ import { SwiftInstaller } from "./swift-installer.js";
  * An installer that uses 'swiftly' internally.
  */
 export class Swiftly extends SwiftInstaller {
-  public static readonly directory: string = `${workingDirectory}/.swiftly`;
-  public static readonly binDirectory: string = `${Swiftly.directory}/bin`;
-  public static readonly toolchainsDirectory: string = `${Swiftly.directory}/toolchains`;
+  public static readonly homeDirectory: string = `${workingDirectory}/.swiftly`;
+  public static readonly binDirectory: string = `${Swiftly.homeDirectory}/bin`;
+  public static readonly toolchainsDirectory: string = `${Swiftly.homeDirectory}/toolchains`;
 
   private static _packagedBinaryURL: URL = (
     (osIsDarwin) ? new URL("https://download.swift.org/swiftly/darwin/swiftly.pkg")
@@ -33,14 +33,15 @@ export class Swiftly extends SwiftInstaller {
       return;
     }
     Swiftly._doneSetUp = true;
-    await fs.promises.mkdir(Swiftly.directory, {recursive: true});
+    await fs.promises.mkdir(Swiftly.homeDirectory, {recursive: true});
     const localPackagedBinaryFilename = Swiftly._packagedBinaryURL.pathname.replace(/^.*\//, '');
-    const localPackagedBinaryPath = path.join(Swiftly.directory, localPackagedBinaryFilename);
+    const localPackagedBinaryPath = path.join(Swiftly.homeDirectory, localPackagedBinaryFilename);
     await download(Swiftly._packagedBinaryURL, localPackagedBinaryPath);
 
-    core.exportVariable("SWIFTLY_HOME_DIR", Swiftly.directory);
+    core.exportVariable("SWIFTLY_HOME_DIR", Swiftly.homeDirectory);
     core.exportVariable("SWIFTLY_BIN_DIR", Swiftly.binDirectory);
     core.exportVariable("SWIFTLY_TOOLCHAINS_DIR", Swiftly.toolchainsDirectory);
+
     if (osIsDarwin) {
       await exec(
         'Install swiftly',
@@ -50,18 +51,8 @@ export class Swiftly extends SwiftInstaller {
           '-target', 'CurrentUserHomeDirectory',
         ],
         {
-          cwd: Swiftly.directory,
+          cwd: Swiftly.homeDirectory,
         }
-      );
-      await exec(
-        "Initialize swiftly",
-        `${os.homedir()}/.swiftly/bin/swiftly`,
-        [
-          'init',
-          '--skip-install',
-          '--quiet-shell-followup',
-          '--assume-yes',
-        ]
       );
     } else {
       await exec(
@@ -71,20 +62,26 @@ export class Swiftly extends SwiftInstaller {
           'zxf', localPackagedBinaryFilename
         ],
         {
-          cwd: Swiftly.directory
+          cwd: Swiftly.homeDirectory
         }
       );
-      await exec(
-        "Initialize swiftly",
-        `${Swiftly.directory}/swiftly`,
-        [
-          'init',
-          ' --skip-install',
-          '--quiet-shell-followup',
-          '--assume-yes',
-        ]
-      )
     }
+
+    const pathToSwiftly = (
+      (osIsDarwin) ? `${os.homedir()}/.swiftly/bin/swiftly`
+      : `${Swiftly.homeDirectory}/swiftly`
+    );
+    await exec(
+      "Initialize swiftly",
+      pathToSwiftly,
+      [
+        'init',
+        '--skip-install',
+        '--quiet-shell-followup',
+        '--assume-yes',
+      ]
+    );
+
     core.addPath(Swiftly.binDirectory);
   }
 
@@ -92,7 +89,7 @@ export class Swiftly extends SwiftInstaller {
     if (!Swiftly._doneSetUp) {
       return;
     }
-    await fs.promises.rm(Swiftly.directory, {recursive: true, force: true});
+    await fs.promises.rm(Swiftly.homeDirectory, {recursive: true, force: true});
     Swiftly._doneSetUp = false;
   }
 
