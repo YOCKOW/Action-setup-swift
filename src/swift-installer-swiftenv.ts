@@ -31,16 +31,18 @@ export class Swiftenv extends installer.SwiftInstaller {
 
   private static _doneSetUp: boolean = false;
   private static async _setUp(): Promise<void> {
-    if (Swiftenv._doneSetUp) {
-      return;
-    }
-    Swiftenv._doneSetUp = true;
-    await exec(
-      'Download swiftenv...',
-      'git', ['clone', '--depth', '1', 'https://github.com/kylef/swiftenv.git', Swiftenv.directory]
-    );
-    core.addPath(Swiftenv.binDirectory);
-    core.exportVariable('SWIFTENV_ROOT', Swiftenv.directory);
+    await navigator.locks.request("Swiftenv._setUp", async () => {
+      if (Swiftenv._doneSetUp) {
+        return;
+      }
+      await exec(
+        'Download swiftenv',
+        'git', ['clone', '--depth', '1', 'https://github.com/kylef/swiftenv.git', Swiftenv.directory]
+      );
+      core.addPath(Swiftenv.binDirectory);
+      core.exportVariable('SWIFTENV_ROOT', Swiftenv.directory);
+      Swiftenv._doneSetUp = true;
+    });
   }
 
   public constructor(version: string) {
@@ -52,56 +54,58 @@ export class Swiftenv extends installer.SwiftInstaller {
   }
 
   public override async installSwift(): Promise<void> {
-    const version = this.swiftVersion;
-    const whereSwift = await XcodeInfo.forSwift(version);
-    if (whereSwift) {
-      core.info(version + ' is already installed.');
-      return;
-    }
+    await navigator.locks.request(`Swiftenv.installSwift ${this.swiftVersion}`, async () => {
+      const version = this.swiftVersion;
+      const whereSwift = await XcodeInfo.forSwift(version);
+      if (whereSwift) {
+        core.info(version + ' is already installed.');
+        return;
+      }
 
-    const status = (await exec('swiftenv', ['prefix', version], {ignoreReturnCode: true})).exitStatus;
-    if (status == 0) {
-      core.info(version + ' is already installed.');
-      return;
-    }
+      const status = (await exec('swiftenv', ['prefix', version], {ignoreReturnCode: true})).exitStatus;
+      if (status == 0) {
+        core.info(version + ' is already installed.');
+        return;
+      }
 
-    const __download_swift = async (): Promise<number> => {
-      return (await exec(
-        Swiftenv.path,
-        ['install', version],
-        {
-          ignoreReturnCode: true,
+      const __download_swift = async (): Promise<number> => {
+        return (await exec(
+          Swiftenv.path,
+          ['install', version],
+          {
+            ignoreReturnCode: true,
+          }
+        )).exitStatus;
+      };
+
+      // NOTE: Sometimes `swiftenv install ...` fails owing to curl's error 18 on GitHub Actions.
+      const __retryableExitStatus = (status: number): boolean => {
+        return (status == 18);
+      };
+    
+      const commandDesc = `swiftenv install ${version}`;
+    
+      info('Download Swift (via swiftenv)');
+      let retryCount = 0;
+      const maxRetryCount = 5;
+      while (true) {
+        retryCount++;
+        if (retryCount > maxRetryCount) {
+          throw new Error(`\`${commandDesc}\` failed too many times.`);
         }
-      )).exitStatus;
-    };
 
-    // NOTE: Sometimes `swiftenv install ...` fails owing to curl's error 18 on GitHub Actions.
-    const __retryableExitStatus = (status: number): boolean => {
-      return (status == 18);
-    };
-  
-    const commandDesc = `swiftenv install ${version}`;
-  
-    info('Download Swift (via swiftenv)');
-    let retryCount = 0;
-    const maxRetryCount = 5;
-    while (true) {
-      retryCount++;
-      if (retryCount > maxRetryCount) {
-        throw new Error(`\`${commandDesc}\` failed too many times.`);
+        const exitStatus = await __download_swift();
+        if (exitStatus == 0) {
+          break;
+        }
+        const failureMessage = `\`${commandDesc}\` failed with exit code ${exitStatus.toString()}.`;
+        if (__retryableExitStatus(exitStatus)) {
+          core.info(failureMessage);
+        } else {
+          throw new Error(failureMessage);
+        }
       }
-
-      const exitStatus = await __download_swift();
-      if (exitStatus == 0) {
-        break;
-      }
-      const failureMessage = `\`${commandDesc}\` failed with exit code ${exitStatus.toString()}.`;
-      if (__retryableExitStatus(exitStatus)) {
-        core.info(failureMessage);
-      } else {
-        throw new Error(failureMessage);
-      }
-    }
+    });
   }
 
   public override async switchSwift(): Promise<void> {
