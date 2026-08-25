@@ -11,8 +11,8 @@ import * as core from '@actions/core';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { osIsDarwin, workingDirectory, download, execRun } from "./common";
-import { SwiftInstaller } from "./swift-installer";
+import { osIsDarwin, workingDirectory, download, exec } from "./common.js";
+import { SwiftInstaller } from "./swift-installer.js";
 
 /**
  * An installer that uses 'swiftly' internally.
@@ -33,6 +33,7 @@ export class Swiftly extends SwiftInstaller {
       return;
     }
     Swiftly._doneSetUp = true;
+    await fs.promises.mkdir(Swiftly.directory, {recursive: true});
     const localPackagedBinaryFilename = Swiftly._packagedBinaryURL.pathname.replace(/^.*\//, '');
     const localPackagedBinaryPath = path.join(Swiftly.directory, localPackagedBinaryFilename);
     await download(Swiftly._packagedBinaryURL, localPackagedBinaryPath);
@@ -41,8 +42,8 @@ export class Swiftly extends SwiftInstaller {
     core.exportVariable("SWIFTLY_BIN_DIR", Swiftly.binDirectory);
     core.exportVariable("SWIFTLY_TOOLCHAINS_DIR", Swiftly.toolchainsDirectory);
     if (osIsDarwin) {
-      await execRun(
-        'Installing swiftly...',
+      await exec(
+        'Install swiftly',
         'installer',
         [
           '-pkg', localPackagedBinaryFilename,
@@ -52,8 +53,8 @@ export class Swiftly extends SwiftInstaller {
           cwd: Swiftly.directory,
         }
       );
-      await execRun(
-        "Initializing swiftly...",
+      await exec(
+        "Initialize swiftly",
         `${os.homedir()}/.swiftly/bin/swiftly`,
         [
           'init',
@@ -61,8 +62,8 @@ export class Swiftly extends SwiftInstaller {
         ]
       );
     } else {
-      await execRun(
-        "Unarchiving swiftly...",
+      await exec(
+        "Unarchive swiftly",
         "tar",
         [
           'zxf', localPackagedBinaryFilename
@@ -71,8 +72,8 @@ export class Swiftly extends SwiftInstaller {
           cwd: Swiftly.directory
         }
       );
-      await execRun(
-        "Initializing swiftly...",
+      await exec(
+        "Initialize swiftly",
         `${Swiftly.directory}/swiftly`,
         [
           'init',

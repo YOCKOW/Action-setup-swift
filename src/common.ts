@@ -6,13 +6,16 @@
  ************************************************************************************************ */
 
 import * as core from '@actions/core';
-import * as exec from '@actions/exec';
+import * as actionsExec from '@actions/exec';
 import * as fs from 'fs';
 import { IncomingHttpHeaders, IncomingMessage } from 'http';
 import * as https from 'https';
 import * as os from 'os';
 
 // ----- Constants ----- //
+
+export type Optional<Wrapped> = Wrapped | undefined;
+export const nil = void 0;
 
 /** Default path to the Swift package directory. */
 export const defaultSwiftPackageDirectory: string = '.';
@@ -29,17 +32,61 @@ export const swiftenvPath = `${swiftenvBinDirectory}/swiftenv`;
 
 export const osIsDarwin: boolean = os.platform() == 'darwin';
 
+// ----- Type Guards ----- //
+
+export type TypeGuard<T> = (something: unknown) => something is T;
+export type TypeName = "undefined" | "number" | "string" | "boolean" | "bigint" | "symbol" | "object" |  "function";
+
+function _isType(value: unknown, type: TypeName): boolean {
+  if (type == "undefined" && value === nil) {
+    return true;
+  }
+  return (value !== nil && typeof value == type);
+}
+
+export const isUndefined: TypeGuard<undefined> = (value: unknown): value is undefined => {
+  return _isType(value, "undefined");
+};
+
+export const isObject: TypeGuard<object> = (value: unknown): value is object => {
+  return (typeof value === "object" && value !== null) ? true : false;
+}
+
+export const isArray: TypeGuard<Array<unknown>> = (value: unknown): value is Array<unknown> => {
+  return isObject(value) && Array.isArray(value);
+}
+
+export const isBigInt: TypeGuard<bigint> = (value: unknown): value is bigint => {
+  return _isType(value, "bigint");
+};
+
+export const isBoolean: TypeGuard<boolean> = (value: unknown): value is boolean => {
+  return _isType(value, "boolean");
+}
+
+export const isNumber: TypeGuard<number> = (value: unknown): value is number => {
+  return _isType(value, "number");
+};
+
+export const isString: TypeGuard<string> = (value: unknown): value is string => {
+  return _isType(value, "string");
+};
+
+export const isStringArray: TypeGuard<Array<string>> = (value: unknown): value is Array<string> => {
+  if (!isArray(value)) {
+    return false;
+  }
+  return value.every(elem => isString(elem));
+}
+
 // ----- Functions ----- //
 
-/**
- * @param name - The name of the job.
- * @param closure - The job.
- */
-export async function run<T>(name: string, closure: () => Promise<T>): Promise<T> {
-  core.startGroup(name);
-  const result = await closure();
-  core.endGroup();
-  return result;
+export function info(message: string) {
+  const lines = message.split(/\r|\n|\r\n/);
+  core.info(`ℹ️ ${lines[0]}`);
+  for (let ii = 1; ii < lines.length; ii++) {
+    core.info(`   ${lines[ii]}`);
+  }
 }
 
 export type CommandResult = {
@@ -49,44 +96,216 @@ export type CommandResult = {
 };
 
 /**
- * @param name - The name of the job.
+ * @param jobName - The name of the job.
  * @param commandName - Command to execute.
  * @param commandArgs - (Optional) Arguments for the command.
  * @param commandOptions - (Optional) Optional options for the command.
  * @returns The result of the command.
  */
-export async function execRun(
-  name: string,
+export async function exec(
+  jobName: string,
   commandName: string,
-  commandArgs: string[] | undefined = void(0),
-  commandOptions: exec.ExecOptions | undefined = void(0)
-): Promise<CommandResult> {
+  commandArgs: string[],
+  commandOptions: actionsExec.ExecOptions
+): Promise<CommandResult>;
+export async function exec(
+  jobName: string, 
+  commandName: string,
+  commandArgs: string[]
+): Promise<CommandResult>;
+export async function exec(
+  jobName: string,
+  commandName: string,
+  commandOptions: actionsExec.ExecOptions
+): Promise<CommandResult>;
+export async function exec(
+  jobName: string,
+  commandName: string,
+): Promise<CommandResult>;
+export async function exec(
+  commandName: string,
+  commandArgs: string[],
+  commandOptions: actionsExec.ExecOptions
+): Promise<CommandResult>;
+export async function exec(
+  commandName: string,
+  commandArgs: string[],
+): Promise<CommandResult>;
+export async function exec(
+  commandName: string,
+  commandOptions: actionsExec.ExecOptions
+): Promise<CommandResult>;
+export async function exec(
+  commandName: string,
+): Promise<CommandResult>;
+export async function exec(jobNameOrCommandName: string, ...otherArguments: unknown[]): Promise<CommandResult> {
+  interface __Arguments {
+    jobName: string | undefined;
+    commandName: string;
+    commandArgs: string[] | undefined;
+    commandOptions: actionsExec.ExecOptions | undefined;
+  }
+
+  if (otherArguments.length > 3) {
+    throw new Error("Unexpected number of arguments?!");
+  }
+
+  const arg0 = jobNameOrCommandName;
+  const arg1: unknown = (otherArguments.length >= 1) ? otherArguments[0] : nil;
+  const arg2: unknown = (otherArguments.length >= 2) ? otherArguments[1] : nil;
+  const arg3: unknown = (otherArguments.length >= 3) ? otherArguments[2] : nil;
+
+  const isObjectNotArray: TypeGuard<object> = (something): something is object => {
+    return isObject(something) && !isArray(something);
+  };
+
+  const __types = <T0, T1, T2, T3>(
+    tg0: TypeGuard<T0>,
+    tg1: Optional<TypeGuard<T1>>,
+    tg2: Optional<TypeGuard<T2>>,
+    tg3: Optional<TypeGuard<T3>>
+  ): boolean => {
+    const __is = <T>(tg: Optional<TypeGuard<T>>, something: unknown): boolean => {
+      if (isUndefined(tg)) {
+        return isUndefined(something);
+      }
+      return tg(something);
+    }
+    return __is(tg0, arg0) && __is(tg1, arg1) && __is(tg2, arg2) && __is(tg3, arg3);
+  };
+
+  const actualArguments: __Arguments = ((): __Arguments => {
+    if (__types(isString, isString, isStringArray, isObjectNotArray)) {
+      return {
+        jobName: arg0,
+        commandName: arg1 as string,
+        commandArgs: arg2 as string[],
+        commandOptions: arg3 as object,
+      };
+    }
+    if (__types(isString, isString, isStringArray, nil)) {
+      return {
+        jobName: arg0,
+        commandName: arg1 as string,
+        commandArgs: arg2 as string[],
+        commandOptions: nil,
+      };
+    }
+    if (__types(isString, isString, isObjectNotArray, nil)) {
+      return {
+        jobName: arg0,
+        commandName: arg1 as string,
+        commandArgs: nil,
+        commandOptions: arg2 as object,
+      };
+    }
+    if (__types(isString, isString, nil, nil)) {
+      return {
+        jobName: arg0,
+        commandName: arg1 as string,
+        commandArgs: nil,
+        commandOptions: nil,
+      };
+    }
+    if (__types(isString, isStringArray, isObjectNotArray, nil)) {
+      return {
+        jobName: nil,
+        commandName: arg0,
+        commandArgs: arg1 as string[],
+        commandOptions: arg2 as object,
+      };
+    }
+    if (__types(isString, isStringArray, nil, nil)) {
+      return {
+        jobName: nil,
+        commandName: arg0,
+        commandArgs: arg1 as string[],
+        commandOptions: nil,
+      };
+    }
+    if (__types(isString, isObjectNotArray, nil, nil)) {
+      return {
+        jobName: nil,
+        commandName: arg0,
+        commandArgs: nil,
+        commandOptions: arg1 as object,
+      };
+    }
+    if (__types(isString, nil, nil, nil)) {
+      return {
+        jobName: nil,
+        commandName: arg0,
+        commandArgs: nil,
+        commandOptions: nil,
+      };
+    }
+    throw new Error(`Unexpected type(s) of arguments?! (The number of arguments: ${arguments.length.toString()})`);
+  })()
+
+  /**  For displaying purpose only. */
+  const __shellEscape = (aString: string): string => {
+    // eslint-disable-next-line @typescript-eslint/no-misused-spread
+    const uniChars = [...aString];
+    let result = "";
+    uniChars.forEach((uniChar) => {
+      const codePoint = uniChar.charCodeAt(0);
+      if (
+        codePoint <= 0x2A ||
+        (0x3B <= codePoint && codePoint <= 0x3F) ||
+        (0x5B <= codePoint && codePoint <= 0x5D) ||
+        codePoint == 0x60 ||
+        (0x7B <= codePoint && codePoint <= 0x7D)
+      ) {
+        result += `\\${uniChar}`;
+      } else {
+        result += uniChar;
+      }
+    });
+    return result;
+  };
+
+  const jobName = actualArguments.jobName;
+  const commandName = actualArguments.commandName;
+  const commandArgs = actualArguments.commandArgs;
+  const commandOptions = actualArguments.commandOptions;
+
+  const __commandDescription = (): string => {
+    let result = commandName;
+    if (!isUndefined(commandArgs)) {
+      result += " " + commandArgs.map(__shellEscape).join(' ');
+    }
+    return result;
+  };
+
+  if (isUndefined(jobName) || jobName.length < 1) {
+    info(`Executing ${__commandDescription()}`);
+  } else {
+    info(`Executing '${jobName}'...`);
+  }
+
   let stdoutString: string = '';
   let stderrString: string = '';
-  let exitStatus: number = 1;
 
   const originalStdoutListener = commandOptions?.listeners?.stdout;
   const stdoutListener = (data: Buffer): void => {
-    stdoutString = data.toString().trim();
+    stdoutString = data.toString().trimEnd();
     originalStdoutListener?.call(null, data);
   };
 
   const originalStderrListener = commandOptions?.listeners?.stderr;
   const stderrListener = (data: Buffer): void => {
-    stderrString = data.toString().trim();
+    stderrString = data.toString().trimEnd();
     originalStderrListener?.call(null, data);
   };
 
-  const listeners: exec.ExecListeners = commandOptions?.listeners || {};
+  const listeners: actionsExec.ExecListeners = commandOptions?.listeners || {};
   listeners.stdout = stdoutListener;
   listeners.stderr = stderrListener;
 
-  const newOptions: exec.ExecOptions = commandOptions || {};
+  const newOptions: actionsExec.ExecOptions = commandOptions || {};
   newOptions.listeners = listeners;
 
-  await run(name, async () => {
-    exitStatus = await exec.exec(commandName, commandArgs, newOptions);
-  });
+  const exitStatus = await actionsExec.exec(commandName, commandArgs, newOptions);
 
   return {
     exitStatus: exitStatus,
@@ -95,9 +314,6 @@ export async function execRun(
   }
 }
 
-export async function prepareDirectory(): Promise<void> {
-  await execRun('Prepare working directory...', 'mkdir', ['-p', workingDirectory]);
-}
 
 export interface ResponseHeader {
   statusCode: number;

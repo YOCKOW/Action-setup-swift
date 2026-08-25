@@ -26,17 +26,18 @@ export default defineConfig(
       },
     },
     rules: {
-      "@typescript-eslint/no-unnecessary-condition": [
-        "error",
-        {
-          allowConstantLoopConditions: true
-        }
-      ],
       "@typescript-eslint/no-namespace": [
         "error",
         {
           allowDeclarations: true,
           allowDefinitionFiles: false
+        }
+      ],
+      "@typescript-eslint/unified-signatures": "off",
+      "@typescript-eslint/no-unnecessary-condition": [
+        "error",
+        {
+          allowConstantLoopConditions: true
         }
       ],
       "@typescript-eslint/strict-boolean-expressions": "error",

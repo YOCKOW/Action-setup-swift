@@ -6,14 +6,13 @@
  ************************************************************************************************ */
 
 import * as core from '@actions/core';
-import * as exec from '@actions/exec';
 import * as path from 'path';
 import * as installer from './swift-installer.js';
 import {
-  workingDirectory,
-  run,
-  execRun,
+  exec,
+  info,
   osIsDarwin,
+  workingDirectory,
 } from './common.js';
 import { XcodeInfo } from './xcode.js';
 
@@ -36,7 +35,7 @@ export class Swiftenv extends installer.SwiftInstaller {
       return;
     }
     Swiftenv._doneSetUp = true;
-    await execRun(
+    await exec(
       'Download swiftenv...',
       'git', ['clone', '--depth', '1', 'https://github.com/kylef/swiftenv.git', Swiftenv.directory]
     );
@@ -60,20 +59,20 @@ export class Swiftenv extends installer.SwiftInstaller {
       return;
     }
 
-    const status = await exec.exec('swiftenv', ['prefix', version], {ignoreReturnCode: true});
+    const status = (await exec('swiftenv', ['prefix', version], {ignoreReturnCode: true})).exitStatus;
     if (status == 0) {
       core.info(version + ' is already installed.');
       return;
     }
 
     const __download_swift = async (): Promise<number> => {
-      return await exec.exec(
+      return (await exec(
         Swiftenv.path,
         ['install', version],
         {
           ignoreReturnCode: true,
         }
-      );
+      )).exitStatus;
     };
 
     // NOTE: Sometimes `swiftenv install ...` fails owing to curl's error 18 on GitHub Actions.
@@ -83,27 +82,26 @@ export class Swiftenv extends installer.SwiftInstaller {
   
     const commandDesc = `swiftenv install ${version}`;
   
-    await run('Download Swift (via swiftenv)...', async () => {
-      let retryCount = 0;
-      const maxRetryCount = 5;
-      while (true) {
-        retryCount++;
-        if (retryCount > maxRetryCount) {
-          throw new Error(`\`${commandDesc}\` failed too many times.`);
-        }
-  
-        const exitStatus = await __download_swift();
-        if (exitStatus == 0) {
-          break;
-        }
-        const failureMessage = `\`${commandDesc}\` failed with exit code ${exitStatus.toString()}.`;
-        if (__retryableExitStatus(exitStatus)) {
-          core.info(failureMessage);
-        } else {
-          throw new Error(failureMessage);
-        }
+    info('Download Swift (via swiftenv)');
+    let retryCount = 0;
+    const maxRetryCount = 5;
+    while (true) {
+      retryCount++;
+      if (retryCount > maxRetryCount) {
+        throw new Error(`\`${commandDesc}\` failed too many times.`);
       }
-    });
+
+      const exitStatus = await __download_swift();
+      if (exitStatus == 0) {
+        break;
+      }
+      const failureMessage = `\`${commandDesc}\` failed with exit code ${exitStatus.toString()}.`;
+      if (__retryableExitStatus(exitStatus)) {
+        core.info(failureMessage);
+      } else {
+        throw new Error(failureMessage);
+      }
+    }
   }
 
   public override async switchSwift(): Promise<void> {
@@ -112,10 +110,10 @@ export class Swiftenv extends installer.SwiftInstaller {
     if (whereSwift instanceof XcodeInfo) {
       this.toolchain = await whereSwift.equivalentReleaseVersion() || whereSwift;
     } else {
-      await exec.exec(Swiftenv.path, ['global', version]);
-      await exec.exec(Swiftenv.path, ['versions']);
-      const whichResult = await execRun(
-        "Determine the path to 'swift'.",
+      await exec(Swiftenv.path, ['global', version]);
+      await exec(Swiftenv.path, ['versions']);
+      const whichResult = await exec(
+        "Determine the path to 'swift'",
         Swiftenv.path,
         ['which', 'swift']
       )

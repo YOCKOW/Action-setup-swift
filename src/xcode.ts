@@ -6,15 +6,16 @@
  ************************************************************************************************ */
 
 import * as core from '@actions/core';
-import * as exec from '@actions/exec';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as semver from 'semver';
 import SemVer = semver.SemVer;
 import {
-  execRun,
+  exec,
+  info,
+  nil,
+  Optional,
   osIsDarwin,
-  run,
 } from './common.js';
 
 export type XcodePath = string;
@@ -32,8 +33,8 @@ export class XcodeInfo {
   }
 
   private async _readDefaultsForKey(key: string): Promise<string> {
-    const result = await execRun(
-      `Xcode: Reading defaults for ${key}...`,
+    const result = await exec(
+      `Xcode: Read defaults for ${key}`,
       'defaults',
       ['read', `${this.path}/Contents/Info`, key]
     );
@@ -58,15 +59,16 @@ export class XcodeInfo {
 
   async swiftVersion(): Promise<string> {
     if (typeof this._swiftVersion != "string") {
-      let swiftVersionString = ''
-      await exec.exec('xcrun', ['swift', '--version'], {
-        env: {
-          'DEVELOPER_DIR': this.path,
-        },
-        listeners: {
-          stdout: (data: Buffer) => { swiftVersionString = data.toString().trim(); }
+      const swiftVersionResult = await exec(
+        'xcrun',
+        ['swift', '--version'],
+        {
+          env: {
+            'DEVELOPER_DIR': this.path,
+          }
         }
-      });
+      );
+      const swiftVersionString = swiftVersionResult.stdout.trim();
       const result = (new RegExp('Swift version (\\d+(?:\\.\\d+)+)')).exec(swiftVersionString)
       if (!result) {
         throw Error(`Swift version cannot be detected for ${this.path}.`)
@@ -167,7 +169,7 @@ export class XcodeInfo {
 
   public async activateDeveloperDirectory(): Promise<void> {
     const developerDirectory = this.developerDirectory;
-    await execRun(
+    await exec(
       `Switch Developer Directory to ${developerDirectory}`,
       'sudo xcode-select',
       ['-switch', developerDirectory]
@@ -175,12 +177,12 @@ export class XcodeInfo {
   }
 
   public async setSDKRootEnvironmentVariable(): Promise<void> {
-    const sdkRootResult = await execRun(
+    const sdkRootResult = await exec(
       'Set SDKROOT environment variable',
       'xcrun',
       ['--sdk', 'macosx', '--show-sdk-path'],
     );
-    core.exportVariable('SDKROOT', sdkRootResult.stdout);
+    core.exportVariable('SDKROOT', sdkRootResult.stdout.trim());
   }
 
   public async activate(): Promise<void> {
@@ -199,7 +201,7 @@ export declare namespace XcodeInfo {
 }
 
 XcodeInfo.installedUnderApplicationsDirectory = (() => {
-  let installedXcodeApplicationsUnderApplicationsDirectory: Map<XcodePath, XcodeInfo> | undefined = void(0);
+  let installedXcodeApplicationsUnderApplicationsDirectory: Optional<Map<XcodePath, XcodeInfo>> = nil;
   return (): ReadonlyMap<XcodePath, XcodeInfo> => {
     if (typeof installedXcodeApplicationsUnderApplicationsDirectory != "undefined") {
       return installedXcodeApplicationsUnderApplicationsDirectory;
@@ -239,8 +241,8 @@ XcodeInfo.all = (() => {
     }
 
     const result = new Map<XcodePath, XcodeInfo>();
-    const commandResult = await execRun(
-      "Searching all Xcode applications...",
+    const commandResult = await exec(
+      "Search all Xcode applications",
       'mdfind',
       ['kMDItemCFBundleIdentifier == "com.apple.dt.Xcode"'],
       { ignoreReturnCode: true }
@@ -265,7 +267,8 @@ XcodeInfo.latest = (() => {
       return latestXcode;
     }
 
-    const result = await run("Determining the latest Xcode...", async (): Promise<XcodeInfo> => {
+    info("Determining the latest Xcode...");
+    const result = await (async (): Promise<XcodeInfo> => {
       let currentLatest: XcodeInfo | undefined = void(0);
       for (const info of Array.from((await XcodeInfo.all()).values())) {
         if (!currentLatest || semver.gt(await info.version(), await currentLatest.version())) {
@@ -276,7 +279,7 @@ XcodeInfo.latest = (() => {
         throw new Error("No Xcode.app?!");
       }
       return currentLatest;
-    });
+    })();
     latestXcode = result;
     return result;
   };
@@ -293,31 +296,29 @@ XcodeInfo.forSwift = (() => {
       return swiftMap.get(version) || null;
     }
 
-    const foundXcode = await run(
-      'Check whether or not Swift ' + version + ' is already installed.',
-      async (): Promise<XcodeInfo | null> => {
-        // Avoid calling `mdfind` if possible
-        const xcodeInAppDirMap = XcodeInfo.installedUnderApplicationsDirectory();
-        const xcodesInAppDir = Array.from(xcodeInAppDirMap.values());
-        for (const xcodeInfo of xcodesInAppDir.sort((x1, x2) => (x1.path > x2.path) ? -1 : 1 )) {
+    info('Check whether or not Swift ' + version + ' is already installed.');
+    const foundXcode = await (async (): Promise<XcodeInfo | null> => {
+      // Avoid calling `mdfind` if possible
+      const xcodeInAppDirMap = XcodeInfo.installedUnderApplicationsDirectory();
+      const xcodesInAppDir = Array.from(xcodeInAppDirMap.values());
+      for (const xcodeInfo of xcodesInAppDir.sort((x1, x2) => (x1.path > x2.path) ? -1 : 1 )) {
+        if (await xcodeInfo.swiftVersion() == version) {
+          return xcodeInfo;
+        }
+      }
+
+      const allXcodesMap = await XcodeInfo.all();
+      const allXcodes = Array.from(allXcodesMap.values());
+      for (const xcodeInfo of allXcodes) {
+        if (!xcodeInAppDirMap.has(xcodeInfo.path)) {
           if (await xcodeInfo.swiftVersion() == version) {
             return xcodeInfo;
           }
         }
-
-        const allXcodesMap = await XcodeInfo.all();
-        const allXcodes = Array.from(allXcodesMap.values());
-        for (const xcodeInfo of allXcodes) {
-          if (!xcodeInAppDirMap.has(xcodeInfo.path)) {
-            if (await xcodeInfo.swiftVersion() == version) {
-              return xcodeInfo;
-            }
-          }
-        }
-
-        return null;
       }
-    );
+
+      return null;
+    })();
     swiftMap.set(version, foundXcode);
     return foundXcode;
   };

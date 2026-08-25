@@ -9,11 +9,7 @@ import * as core from '@actions/core';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-import {
-  defaultSwiftPackageDirectory,
-  run,
-  prepareDirectory,
-} from './common.js';
+import * as common from './common.js';
 import { XcodeInfo } from './xcode.js';
 import { SwiftInstaller } from './swift-installer.js';
 import { Swiftenv } from './swift-installer-swiftenv.js';
@@ -25,8 +21,12 @@ const inputSwiftPackageDirectory: string = ((packageDirectory: string): string =
     return packageDirectory;
   }
   return path.normalize(path.resolve(packageDirectory));
-})(core.getInput('swift-package-directory') || defaultSwiftPackageDirectory);
+})(core.getInput('swift-package-directory') || common.defaultSwiftPackageDirectory);
 
+
+async function prepareDirectory(): Promise<void> {
+  await common.exec('Prepare working directory', 'mkdir', ['-p', common.workingDirectory]);
+}
 
 const swiftVersion: () => Promise<string> = (function () {
   let _swift_version: string | undefined = void(0);
@@ -42,22 +42,21 @@ const swiftVersion: () => Promise<string> = (function () {
 
     const __checkSwiftVerionFile = async (dirPath: string): Promise<string | undefined> => {
       const swiftVerionFilePath = path.join(dirPath, '.swift-version');
-      return await run(`Read content of the file at "${swiftVerionFilePath}".`, async () => {
-        let fh: fs.FileHandle | undefined;
-        let content: string | undefined;
-        try {
-          fh = await fs.open(swiftVerionFilePath);
-          content = (await fh.readFile("utf8")).trim();
-          if (content) {
-            core.info(`Swift version ${content} will be used.`);
-          }
-        } catch (error: unknown) {
-          core.debug(String(error));
-        } finally {
-          await fh?.close();
+      common.info(`Read content of the file at "${swiftVerionFilePath}".`);
+      let fh: fs.FileHandle | undefined;
+      let content: string | undefined;
+      try {
+        fh = await fs.open(swiftVerionFilePath);
+        content = (await fh.readFile("utf8")).trim();
+        if (content) {
+          common.info(`Swift version ${content} will be used.`);
         }
-        return content;
-      });
+      } catch (error: unknown) {
+        core.debug(String(error));
+      } finally {
+        await fh?.close();
+      }
+      return content;
     }
 
     let currentDirectoryForSwiftVersion = inputSwiftPackageDirectory;
@@ -85,13 +84,16 @@ async function swiftInstaller(version: string): Promise<SwiftInstaller> {
 }
 
 async function main(): Promise<void> {
-  await prepareDirectory();
-  const detectedSwiftVersion = await swiftVersion();
-  const installer = await swiftInstaller(detectedSwiftVersion);
-  await installer.setUp();
-  await installer.installSwift();
-  await installer.switchSwift();
-  await installer.finalize();
+  await core.group("Preparing Working Directory", prepareDirectory);
+  const detectedSwiftVersion = await core.group("Detecting Swift Version", swiftVersion);
+  const installer = await core.group(
+    "Selecting Swift Installer",
+    async () => await swiftInstaller(detectedSwiftVersion)
+  );
+  await core.group("Setting Up Installer", async () => installer.setUp());
+  await core.group("Installing Swift", async () => installer.installSwift());
+  await core.group("Switching Swift", async () => installer.switchSwift());
+  await core.group("Finalizing Installer", async () => installer.finalize());
 }
 
 main().catch((error: unknown) => { core.setFailed(String(error)); })
