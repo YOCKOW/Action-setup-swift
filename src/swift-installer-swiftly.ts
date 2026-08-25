@@ -11,7 +11,7 @@ import * as core from '@actions/core';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { osIsDarwin, workingDirectory, download, exec } from "./common.js";
+import { osIsDarwin, workingDirectory, download, exec, info } from "./common.js";
 import { SwiftInstaller } from "./swift-installer.js";
 
 /**
@@ -99,6 +99,11 @@ export class Swiftly extends SwiftInstaller {
 
   public override async setUp(): Promise<void> {
     await Swiftly._setUp();
+  }
+
+  public override async installSwift(): Promise<void> {
+    info(`Download Swift ${this.swiftVersion} (via swiftly)`);
+    await exec('swiftly', ['install', this.swiftVersion]);
   }
 
   public override async tearDown(): Promise<void> {
