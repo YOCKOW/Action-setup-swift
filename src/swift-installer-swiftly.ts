@@ -82,9 +82,6 @@ export class Swiftly extends SwiftInstaller {
         ]
       );
       core.addPath(Swiftly.binDirectory);
-
-      await exec("Link swiftly", "swiftly", ["link"]);
-
       Swiftly._doneSetUp = true;
     });
   }
@@ -106,8 +103,10 @@ export class Swiftly extends SwiftInstaller {
   }
 
   public override async installSwift(): Promise<void> {
-    info(`Download Swift ${this.swiftVersion} (via swiftly)`);
-    await exec('swiftly', ['install', this.swiftVersion]);
+    await navigator.locks.request(`Swiftly.installSwift ${this.swiftVersion}`, async () => {
+      info(`Download Swift ${this.swiftVersion} (via swiftly)`);
+      await exec('swiftly', ['install', this.swiftVersion]);
+    });
   }
 
   public override async tearDown(): Promise<void> {
