@@ -379,6 +379,13 @@ export async function redirectedURL(initialURL: URL, maxRedirectCount: number = 
 
 export async function download(url: URL, path: string, maxRedirectCount: number = 20): Promise<void> {
   const finalDestination = await redirectedURL(url, maxRedirectCount);
+  if (url.href != finalDestination.hash) {
+    info(`download: Redirected from ${url.toString()}\n` +
+         `                     to   ${finalDestination.toString()}`);
+  }
+
+  info(`Download file from ${finalDestination.toString()}\n` +
+       `              to   ${path}`);
   const localFile = fs.createWriteStream(path);
   await new Promise<void>((resolve, reject) => {
     const request = https.request(finalDestination, (response) => {
