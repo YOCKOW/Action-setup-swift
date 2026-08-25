@@ -56,6 +56,25 @@ export class Swiftly extends SwiftInstaller {
       );
     } else {
       await exec(
+        'Update apt',
+        'sudo apt-get',
+        [
+          'update',
+        ]
+      );
+      await exec(
+        'Install required dependencies',
+        'sudo apt-get',
+        [
+          'install',
+          '-y',
+          '--no-install-recommends',
+          'bash',
+          'tar',
+          'libcurl4-openssl-dev',
+        ]
+      );
+      await exec(
         "Unarchive swiftly",
         "tar",
         [
@@ -79,6 +98,13 @@ export class Swiftly extends SwiftInstaller {
         '--skip-install',
         '--quiet-shell-followup',
         '--assume-yes',
+      ]
+    );
+    await exec(
+      "Link swiftly",
+      pathToSwiftly,
+      [
+        'link',
       ]
     );
 
