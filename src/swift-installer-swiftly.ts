@@ -33,10 +33,21 @@ export class Swiftly extends SwiftInstaller {
       if (Swiftly._doneSetUp) {
         return;
       }
+
       await fs.promises.mkdir(Swiftly.homeDirectory, {recursive: true});
       const localPackagedBinaryFilename = Swiftly._packagedBinaryURL.pathname.replace(/^.*\//, '');
       const localPackagedBinaryPath = path.join(Swiftly.homeDirectory, localPackagedBinaryFilename);
-      await download(Swiftly._packagedBinaryURL, localPackagedBinaryPath);
+
+      const __installDependencies = async (): Promise<void> => {
+        if (!osIsDarwin) {
+          await aptInstall("bash", "tar", "libcurl4-openssl-dev");
+        }
+      };
+
+      await Promise.all([
+        __installDependencies(),
+        download(Swiftly._packagedBinaryURL, localPackagedBinaryPath),
+      ]);
 
       core.exportVariable("SWIFTLY_HOME_DIR", Swiftly.homeDirectory);
       core.exportVariable("SWIFTLY_BIN_DIR", Swiftly.binDirectory);
@@ -55,7 +66,6 @@ export class Swiftly extends SwiftInstaller {
           }
         );
       } else {
-        await aptInstall("bash", "tar", "libcurl4-openssl-dev");
         await exec(
           "Unarchive swiftly",
           "tar",
