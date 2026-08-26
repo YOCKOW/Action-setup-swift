@@ -42,14 +42,14 @@ const swiftVersion: () => Promise<string> = (function () {
 
     const __checkSwiftVerionFile = async (dirPath: string): Promise<string | undefined> => {
       const swiftVerionFilePath = path.join(dirPath, '.swift-version');
-      common.info(`Read content of the file at "${swiftVerionFilePath}".`);
+      await common.info(`Read content of the file at "${swiftVerionFilePath}".`);
       let fh: fs.FileHandle | undefined;
       let content: string | undefined;
       try {
         fh = await fs.open(swiftVerionFilePath);
         content = (await fh.readFile("utf8")).trim();
         if (content) {
-          common.info(`Swift version ${content} will be used.`);
+          await common.info(`Swift version ${content} will be used.`);
         }
       } catch (error: unknown) {
         core.debug(String(error));
@@ -78,8 +78,10 @@ const swiftVersion: () => Promise<string> = (function () {
 async function swiftInstaller(version: string): Promise<SwiftInstaller> {
   const properXcode = await XcodeInfo.forSwift(version);
   if (properXcode instanceof XcodeInfo) {
+    await common.info(`Preinstalled Swift will be used in Xcode at ${properXcode.path}`);
     return new PreinstalledXcode(version, properXcode);
   }
+  await common.info(`swiftenv will be used to install Swift ${version}.`);
   return new Swiftenv(version);
 }
 

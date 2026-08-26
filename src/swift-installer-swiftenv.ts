@@ -58,13 +58,13 @@ export class Swiftenv extends installer.SwiftInstaller {
       const version = this.swiftVersion;
       const whereSwift = await XcodeInfo.forSwift(version);
       if (whereSwift) {
-        core.info(version + ' is already installed.');
+        await info(version + ' is already installed.');
         return;
       }
 
       const status = (await exec('swiftenv', ['prefix', version], {ignoreReturnCode: true})).exitStatus;
       if (status == 0) {
-        core.info(version + ' is already installed.');
+        await info(version + ' is already installed.');
         return;
       }
 
@@ -85,7 +85,7 @@ export class Swiftenv extends installer.SwiftInstaller {
     
       const commandDesc = `swiftenv install ${version}`;
     
-      info('Download Swift (via swiftenv)');
+      await info('Download Swift (via swiftenv)');
       let retryCount = 0;
       const maxRetryCount = 5;
       while (true) {

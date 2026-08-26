@@ -104,7 +104,7 @@ export class Swiftly extends SwiftInstaller {
 
   public override async installSwift(): Promise<void> {
     await navigator.locks.request(`Swiftly.installSwift ${this.swiftVersion}`, async () => {
-      info(`Download Swift ${this.swiftVersion} (via swiftly)`);
+      await info(`Download Swift ${this.swiftVersion} (via swiftly)`);
       await exec('swiftly', ['install', this.swiftVersion]);
     });
   }

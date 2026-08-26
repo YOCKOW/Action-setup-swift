@@ -81,12 +81,21 @@ export const isStringArray: TypeGuard<Array<string>> = (value: unknown): value i
 
 // ----- Functions ----- //
 
-export function info(message: string) {
-  const lines = message.split(/\r|\n|\r\n/);
-  core.info(`ℹ️ ${lines[0]}`);
-  for (let ii = 1; ii < lines.length; ii++) {
-    core.info(`   ${lines[ii]}`);
+export function map<T, U>(optionalValue: Optional<T>, transform: (wrapped: T) => U): Optional<U> {
+  if (isUndefined(optionalValue)) {
+    return nil;
   }
+  return transform(optionalValue);
+}
+
+export async function info(message: string) {
+  await navigator.locks.request("common.info", () => {
+    const lines = message.trimEnd().split(/\r|\n|\r\n/);
+    core.info(`ℹ️ ${lines[0]}`);
+    for (let ii = 1; ii < lines.length; ii++) {
+      core.info(`   ${lines[ii]}`);
+    }
+  });
 }
 
 export function warn(message: string) {
@@ -273,18 +282,37 @@ export async function exec(jobNameOrCommandName: string, ...otherArguments: unkn
   const commandArgs = actualArguments.commandArgs;
   const commandOptions = actualArguments.commandOptions;
 
-  const __commandDescription = (): string => {
-    let result = commandName;
-    if (!isUndefined(commandArgs)) {
-      result += " " + commandArgs.map(__shellEscape).join(' ');
-    }
-    return result;
-  };
+  /* View Message */ {
+    const __commandDescription = (): string => {
+      let result = commandName;
+      if (!isUndefined(commandArgs)) {
+        result += " " + commandArgs.map(__shellEscape).join(' ');
+      }
+      return result;
+    };
 
-  if (isUndefined(jobName) || jobName.length < 1) {
-    info(`Executing ${__commandDescription()}`);
-  } else {
-    info(`Executing '${jobName}'...`);
+    let message = (
+      (isUndefined(jobName) || jobName.length < 1) ? `Executing ${__commandDescription()}`
+      : `Executing '${jobName}'...`
+    );
+
+    map(commandOptions, (opts) => {
+      message += "\n  With some options.\n";
+      map(opts.ignoreReturnCode, (ignoreReturnCode) => {
+        message += `    Ignore Return Code: ${ignoreReturnCode ? 'true' : 'false'}\n`;
+      });
+      map(opts.cwd, (cwd) => {
+        message += `    Current Working Directory (CWD): ${cwd}\n`;
+      });
+      map(opts.env, (env) => {
+        message += `    Environment Variables:\n`
+        for (const [name, value] of Object.entries(env)) {
+          message += `      ${name}: ${value}\n`;
+        }
+      });
+    });
+
+    await info(message);
   }
 
   let stdoutString: string = '';
@@ -397,12 +425,12 @@ export async function redirectedURL(
 export async function download(url: URL, path: string, maxRedirectCount: number = 20): Promise<void> {
   const finalDestination = await redirectedURL(url, maxRedirectCount, /* requireStatusIsOK */ true);
   if (url.href != finalDestination.href) {
-    info(`download: Redirected from ${url.toString()}\n` +
-         `                     to   ${finalDestination.toString()}`);
+    await info(`download: Redirected from ${url.toString()}\n` +
+               `                     to   ${finalDestination.toString()}`);
   }
 
-  info(`Download file from ${finalDestination.toString()}\n` +
-       `              to   ${path}`);
+  await info(`Download file from ${finalDestination.toString()}\n` +
+             `              to   ${path}`);
   const localFile = fs.createWriteStream(path);
   await new Promise<void>((resolve, reject) => {
     const request = https.request(finalDestination, (response) => {

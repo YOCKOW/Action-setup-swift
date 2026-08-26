@@ -74,7 +74,7 @@ export class XcodeInfo {
         throw Error(`Swift version cannot be detected for ${this.path}.`)
       }
       this._swiftVersion = result[1]
-      core.info(`Swift version is ${this._swiftVersion} for Xcode at ${this.path}`)
+      await info(`Swift version is ${this._swiftVersion} for Xcode at ${this.path}`)
     }
     return this._swiftVersion;
   }
@@ -101,19 +101,19 @@ export class XcodeInfo {
   public async isBeta(): Promise<boolean> {
     // FIXME: There should be more appropriate way...
     if (XcodeInfo._betaRegex.test(this.path)) {
-      core.info(`The path to this Xcode contains "beta": ${this.path}`);
+      await info(`The path to this Xcode contains "beta": ${this.path}`);
       return true;
     }
 
     const iconFile = await this._readDefaultsForKey('CFBundleIconFile');
     if ((/beta/i).test(iconFile)) {
-      core.info(`The value of 'CFBundleIconFile' contains "beta": ${iconFile} (Xcode path: ${this.path})`);
+      await info(`The value of 'CFBundleIconFile' contains "beta": ${iconFile} (Xcode path: ${this.path})`);
       return true;
     }
 
     const iconName = await this._readDefaultsForKey('CFBundleIconName');
     if ((/beta/i).test(iconName)) {
-      core.info(`The value of 'CFBundleIconName' contains "beta": ${iconName} (Xcode path: ${this.path})`);
+      await info(`The value of 'CFBundleIconName' contains "beta": ${iconName} (Xcode path: ${this.path})`);
       return true;
     }
 
@@ -125,7 +125,7 @@ export class XcodeInfo {
       return this;
     }
 
-    core.info(`Xcode at '${this.path}' is beta version.`);
+    await info(`Xcode at '${this.path}' is beta version.`);
     const expectedSwiftVersion = await this.swiftVersion();
 
     const betaRegexResult = XcodeInfo._betaRegex.exec(this.path);
@@ -136,7 +136,7 @@ export class XcodeInfo {
       const expectedReleasePath = betaRegexResult[1] + '.app';
       const expectedReleaseXcode = new XcodeInfo(expectedReleasePath);
       if (expectedSwiftVersion == await expectedReleaseXcode.swiftVersion().catch()) {
-        core.info(`Xcode release version is found.`);
+        await info(`Xcode release version is found.`);
         return expectedReleaseXcode;
       }
 
@@ -146,7 +146,7 @@ export class XcodeInfo {
           semver.eq(await xcodeInfo.version(), expectedReleaseVersion) &&
           expectedSwiftVersion == await xcodeInfo.swiftVersion()
         ) {
-          core.info(`Xcode release version is found.`)
+          await info(`Xcode release version is found.`)
           return xcodeInfo;
         }
       }
@@ -158,7 +158,7 @@ export class XcodeInfo {
         }
 
         if (expectedSwiftVersion == await xcodeInfo.swiftVersion()) {
-          core.info(`Xcode release version is found.`)
+          await info(`Xcode release version is found.`)
           return xcodeInfo;
         }
       }
@@ -267,7 +267,7 @@ XcodeInfo.latest = (() => {
       return latestXcode;
     }
 
-    info("Determining the latest Xcode...");
+    await info("Determining the latest Xcode...");
     const result = await (async (): Promise<XcodeInfo> => {
       let currentLatest: XcodeInfo | undefined = void(0);
       for (const info of Array.from((await XcodeInfo.all()).values())) {
@@ -296,7 +296,7 @@ XcodeInfo.forSwift = (() => {
       return swiftMap.get(version) || null;
     }
 
-    info('Check whether or not Swift ' + version + ' is already installed.');
+    await info('Check whether or not Swift ' + version + ' is already installed.');
     const foundXcode = await (async (): Promise<XcodeInfo | null> => {
       // Avoid calling `mdfind` if possible
       const xcodeInAppDirMap = XcodeInfo.installedUnderApplicationsDirectory();
