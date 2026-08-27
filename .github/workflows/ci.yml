@@ -18,15 +18,19 @@ jobs:
         os:
           - ubuntu-latest
           - macOS-26
+        swift-installer:
+          - swiftenv
+          - swiftly
         swift-version:
           - "6.3.3"
           - DEVELOPMENT-SNAPSHOT-2026-08-21-a
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
-      - name: Install Swift.
+      - uses: actions/checkout@v7
+      - name: Install Swift ${{ matrix.swift-version }} using ${{ matrix.swift-installer }}.
         uses: ./
         with:
+          swift-installer: ${{ matrix.swift-installer }}
           swift-version: ${{ matrix.swift-version }}
       - name: View Swift Version
         run: swift --version
@@ -41,12 +45,16 @@ jobs:
         os:
           - ubuntu-latest
           - macOS-26
+        swift-installer:
+          - swiftenv
+          - swiftly
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
-      - name: Install Swift.
+      - uses: actions/checkout@v7
+      - name: Install Swift using ${{ matrix.swift-installer }}.
         uses: ./
         with:
+          swift-installer: ${{ matrix.swift-installer }}
           swift-package-directory: ./swift-test-package
       - name: View Swift Version
         run: swift --version

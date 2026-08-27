@@ -4,6 +4,12 @@ branding:
   icon: 'play'
 description: 'Setting Swift up.'
 inputs:
+  swift-installer:
+    description: |
+      The tool that installs Swift.
+      "swiftenv" or "swiftly" is allowed for this value.
+    required: false
+    default: "swiftenv"
   swift-version:
     description: 'The version of Swift.'
     required: false
