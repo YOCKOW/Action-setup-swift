@@ -11,7 +11,7 @@ import * as xcode from '../src/xcode';
 
 describe('Xcode Tests', () => {
   test('List of Applications', async () => {
-    let list = xcode.XcodeInfo.installedUnderApplicationsDirectory();
+    let list = await xcode.XcodeInfo.installedUnderApplicationsDirectory();
     if (common.osIsDarwin) {
       expect(list.size).toBeGreaterThan(0)
     } else {

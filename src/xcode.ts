@@ -42,41 +42,45 @@ export class XcodeInfo {
   }
 
   async version(): Promise<SemVer> {
-    if (!this._version) {
-      let versionString = await this._readDefaultsForKey('CFBundleShortVersionString');
-      if ((/^\d+\.\d+$/).test(versionString)) {
-        versionString += '.0';
+    return await navigator.locks.request(`XcodeInfo.version.${this.path}`, async (): Promise<SemVer> => {
+      if (!this._version) {
+        let versionString = await this._readDefaultsForKey('CFBundleShortVersionString');
+        if ((/^\d+\.\d+$/).test(versionString)) {
+          versionString += '.0';
+        }
+        const parsedVersion = semver.parse(versionString);
+        if (parsedVersion == null) {
+          throw new Error("Invalid Version String.");
+        }
+        this._version = parsedVersion;
+        return parsedVersion;
       }
-      const parsedVersion = semver.parse(versionString);
-      if (parsedVersion == null) {
-        throw new Error("Invalid Version String.");
-      }
-      this._version = parsedVersion;
-      return parsedVersion;
-    }
-    return this._version;
+      return this._version;
+    });
   }
 
   async swiftVersion(): Promise<string> {
-    if (typeof this._swiftVersion != "string") {
-      const swiftVersionResult = await exec(
-        'xcrun',
-        ['swift', '--version'],
-        {
-          env: {
-            'DEVELOPER_DIR': this.path,
+    return await navigator.locks.request(`XcodeInfo.swiftVersion.${this.path}`, async (): Promise<string> => {
+      if (typeof this._swiftVersion != "string") {
+        const swiftVersionResult = await exec(
+          'xcrun',
+          ['swift', '--version'],
+          {
+            env: {
+              'DEVELOPER_DIR': this.path,
+            }
           }
+        );
+        const swiftVersionString = swiftVersionResult.stdout.trim();
+        const result = (new RegExp('Swift version (\\d+(?:\\.\\d+)+)')).exec(swiftVersionString)
+        if (!result) {
+          throw Error(`Swift version cannot be detected for ${this.path}.`)
         }
-      );
-      const swiftVersionString = swiftVersionResult.stdout.trim();
-      const result = (new RegExp('Swift version (\\d+(?:\\.\\d+)+)')).exec(swiftVersionString)
-      if (!result) {
-        throw Error(`Swift version cannot be detected for ${this.path}.`)
+        this._swiftVersion = result[1]
+        await info(`Swift version is ${this._swiftVersion} for Xcode at ${this.path}`)
       }
-      this._swiftVersion = result[1]
-      await info(`Swift version is ${this._swiftVersion} for Xcode at ${this.path}`)
-    }
-    return this._swiftVersion;
+      return this._swiftVersion;
+    });
   }
 
   get developerDirectory(): string {
@@ -194,7 +198,7 @@ export class XcodeInfo {
 }
 
 export declare namespace XcodeInfo {
-  export function installedUnderApplicationsDirectory(): ReadonlyMap<XcodePath, XcodeInfo>;
+  export function installedUnderApplicationsDirectory(): Promise<ReadonlyMap<XcodePath, XcodeInfo>>;
   export function all(): Promise<ReadonlyMap<XcodePath, XcodeInfo>>;
   export function latest(): Promise<XcodeInfo>;
   export function forSwift(version: string): Promise<XcodeInfo | null>;
@@ -202,124 +206,132 @@ export declare namespace XcodeInfo {
 
 XcodeInfo.installedUnderApplicationsDirectory = (() => {
   let installedXcodeApplicationsUnderApplicationsDirectory: Optional<Map<XcodePath, XcodeInfo>> = nil;
-  return (): ReadonlyMap<XcodePath, XcodeInfo> => {
-    if (typeof installedXcodeApplicationsUnderApplicationsDirectory != "undefined") {
-      return installedXcodeApplicationsUnderApplicationsDirectory;
-    }
-
-    if (!osIsDarwin) {
-      const emptyMap = new Map<XcodePath, XcodeInfo>();
-      installedXcodeApplicationsUnderApplicationsDirectory = emptyMap;
-      return emptyMap;
-    }
-
-    const result = new Map<XcodePath,XcodeInfo>();
-    const dirEntries = fs.readdirSync('/Applications', {withFileTypes: true});
-    for (const entry of dirEntries) {
-      if (entry.isDirectory() && (/^Xcode([^/])*.app/).test(entry.name)) {
-        const xcodePath = path.join('/Applications', entry.name);
-        const xcodeInfo = new XcodeInfo(xcodePath);
-        result.set(xcodePath, xcodeInfo);
+  return async (): Promise<ReadonlyMap<XcodePath, XcodeInfo>> => {
+    return await navigator.locks.request("XcodeInfo.installedUnderApplicationsDirectory", () => {
+      if (typeof installedXcodeApplicationsUnderApplicationsDirectory != "undefined") {
+        return installedXcodeApplicationsUnderApplicationsDirectory;
       }
-    }
-    installedXcodeApplicationsUnderApplicationsDirectory = result;
-    return result;
+
+      if (!osIsDarwin) {
+        const emptyMap = new Map<XcodePath, XcodeInfo>();
+        installedXcodeApplicationsUnderApplicationsDirectory = emptyMap;
+        return emptyMap;
+      }
+
+      const result = new Map<XcodePath,XcodeInfo>();
+      const dirEntries = fs.readdirSync('/Applications', {withFileTypes: true});
+      for (const entry of dirEntries) {
+        if (entry.isDirectory() && (/^Xcode([^/])*.app/).test(entry.name)) {
+          const xcodePath = path.join('/Applications', entry.name);
+          const xcodeInfo = new XcodeInfo(xcodePath);
+          result.set(xcodePath, xcodeInfo);
+        }
+      }
+      installedXcodeApplicationsUnderApplicationsDirectory = result;
+      return result;
+    });
   };
 })();
 
 XcodeInfo.all = (() => {
-  let allXcodes: Map<XcodePath, XcodeInfo> | undefined = void(0);
+  let allXcodes: Optional<Map<XcodePath, XcodeInfo>> = nil;
   return async (): Promise<ReadonlyMap<XcodePath, XcodeInfo>> => {
-    if (typeof allXcodes != "undefined") {
-      return allXcodes;
-    }
+    return await navigator.locks.request("XcodeInfo.all", async () => {
+      if (typeof allXcodes != "undefined") {
+        return allXcodes;
+      }
 
-    if (!osIsDarwin) {
-      const emptyMap = new Map<XcodePath, XcodeInfo>();
-      allXcodes = emptyMap;
-      return emptyMap;
-    }
+      if (!osIsDarwin) {
+        const emptyMap = new Map<XcodePath, XcodeInfo>();
+        allXcodes = emptyMap;
+        return emptyMap;
+      }
 
-    const result = new Map<XcodePath, XcodeInfo>();
-    const commandResult = await exec(
-      "Search all Xcode applications",
-      'mdfind',
-      ['kMDItemCFBundleIdentifier == "com.apple.dt.Xcode"'],
-      { ignoreReturnCode: true }
-    );
-    const paths = commandResult.stdout.split(/\r\n|\r|\n/).map(path => path.trim()).filter(path => path != '');
-    for (const path of paths) {
-      result.set(path, new XcodeInfo(path));
-    }
-    allXcodes = result;
-    return result;
+      const result = new Map<XcodePath, XcodeInfo>();
+      const commandResult = await exec(
+        "Search all Xcode applications",
+        'mdfind',
+        ['kMDItemCFBundleIdentifier == "com.apple.dt.Xcode"'],
+        { ignoreReturnCode: true }
+      );
+      const paths = commandResult.stdout.split(/\r\n|\r|\n/).map(path => path.trim()).filter(path => path != '');
+      for (const path of paths) {
+        result.set(path, new XcodeInfo(path));
+      }
+      allXcodes = result;
+      return result;
+    });
   };
 })();
 
 XcodeInfo.latest = (() => {
-  let latestXcode: XcodeInfo | undefined = void(0);
+  let latestXcode: Optional<XcodeInfo> = nil;
   return async (): Promise<XcodeInfo> => {
-    if (!osIsDarwin) {
-      throw new Error("Called on non-Darwin?!");
-    }
+    return await navigator.locks.request("XcodeInfo.latest", async () => {
+      if (!osIsDarwin) {
+        throw new Error("Called on non-Darwin?!");
+      }
 
-    if (typeof latestXcode != "undefined") {
-      return latestXcode;
-    }
+      if (typeof latestXcode != "undefined") {
+        return latestXcode;
+      }
 
-    await info("Determining the latest Xcode...");
-    const result = await (async (): Promise<XcodeInfo> => {
-      let currentLatest: XcodeInfo | undefined = void(0);
-      for (const info of Array.from((await XcodeInfo.all()).values())) {
-        if (!currentLatest || semver.gt(await info.version(), await currentLatest.version())) {
-          currentLatest = info;
+      await info("Determining the latest Xcode...");
+      const result = await (async (): Promise<XcodeInfo> => {
+        let currentLatest: Optional<XcodeInfo> = nil;
+        for (const info of Array.from((await XcodeInfo.all()).values())) {
+          if (!currentLatest || semver.gt(await info.version(), await currentLatest.version())) {
+            currentLatest = info;
+          }
         }
-      }
-      if (!currentLatest) {
-        throw new Error("No Xcode.app?!");
-      }
-      return currentLatest;
-    })();
-    latestXcode = result;
-    return result;
+        if (!currentLatest) {
+          throw new Error("No Xcode.app?!");
+        }
+        return currentLatest;
+      })();
+      latestXcode = result;
+      return result;
+    });
   };
 })()
 
 XcodeInfo.forSwift = (() => {
   const swiftMap: Map<string /* Swift version */, XcodeInfo | null> = new Map();
   return async (version: string): Promise<XcodeInfo | null> => {
-    if (!osIsDarwin) {
-      return null;
-    }
-
-    if (swiftMap.has(version)) {
-      return swiftMap.get(version) || null;
-    }
-
-    await info('Check whether or not Swift ' + version + ' is already installed.');
-    const foundXcode = await (async (): Promise<XcodeInfo | null> => {
-      // Avoid calling `mdfind` if possible
-      const xcodeInAppDirMap = XcodeInfo.installedUnderApplicationsDirectory();
-      const xcodesInAppDir = Array.from(xcodeInAppDirMap.values());
-      for (const xcodeInfo of xcodesInAppDir.sort((x1, x2) => (x1.path > x2.path) ? -1 : 1 )) {
-        if (await xcodeInfo.swiftVersion() == version) {
-          return xcodeInfo;
-        }
+    return navigator.locks.request("XcodeInfo.forSwift", async () => {
+      if (!osIsDarwin) {
+        return null;
       }
 
-      const allXcodesMap = await XcodeInfo.all();
-      const allXcodes = Array.from(allXcodesMap.values());
-      for (const xcodeInfo of allXcodes) {
-        if (!xcodeInAppDirMap.has(xcodeInfo.path)) {
+      if (swiftMap.has(version)) {
+        return swiftMap.get(version) || null;
+      }
+
+      await info('Check whether or not Swift ' + version + ' is already installed.');
+      const foundXcode = await (async (): Promise<XcodeInfo | null> => {
+        // Avoid calling `mdfind` if possible
+        const xcodeInAppDirMap = await XcodeInfo.installedUnderApplicationsDirectory();
+        const xcodesInAppDir = Array.from(xcodeInAppDirMap.values());
+        for (const xcodeInfo of xcodesInAppDir.sort((x1, x2) => (x1.path > x2.path) ? -1 : 1 )) {
           if (await xcodeInfo.swiftVersion() == version) {
             return xcodeInfo;
           }
         }
-      }
 
-      return null;
-    })();
-    swiftMap.set(version, foundXcode);
-    return foundXcode;
+        const allXcodesMap = await XcodeInfo.all();
+        const allXcodes = Array.from(allXcodesMap.values());
+        for (const xcodeInfo of allXcodes) {
+          if (!xcodeInAppDirMap.has(xcodeInfo.path)) {
+            if (await xcodeInfo.swiftVersion() == version) {
+              return xcodeInfo;
+            }
+          }
+        }
+
+        return null;
+      })();
+      swiftMap.set(version, foundXcode);
+      return foundXcode;
+    });
   };
 })();
