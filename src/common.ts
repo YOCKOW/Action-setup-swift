@@ -88,10 +88,10 @@ export function map<T, U>(optionalValue: Optional<T>, transform: (wrapped: T) =>
   return transform(optionalValue);
 }
 
-export async function info(message: string) {
+export async function info(message: string, marker: string = "ℹ️") {
   await navigator.locks.request("common.info", () => {
     const lines = message.trimEnd().split(/\r|\n|\r\n/);
-    core.info(`ℹ️ ${lines[0]}`);
+    core.info(`${marker} ${lines[0]}`);
     for (let ii = 1; ii < lines.length; ii++) {
       core.info(`   ${lines[ii]}`);
     }
@@ -282,38 +282,38 @@ export async function exec(jobNameOrCommandName: string, ...otherArguments: unkn
   const commandArgs = actualArguments.commandArgs;
   const commandOptions = actualArguments.commandOptions;
 
-  /* View Message */ {
-    const __commandDescription = (): string => {
-      let result = commandName;
-      if (!isUndefined(commandArgs)) {
-        result += " " + commandArgs.map(__shellEscape).join(' ');
-      }
-      return result;
-    };
+  const __commandDescription = (): string => {
+    let result = commandName;
+    if (!isUndefined(commandArgs)) {
+      result += " " + commandArgs.map(__shellEscape).join(' ');
+    }
+    return result;
+  };
 
-    let message = (
-      (isUndefined(jobName) || jobName.length < 1) ? `Executing ${__commandDescription()}`
-      : `Executing '${jobName}'...`
-    );
+  const jobNameForMessage =(
+    (isUndefined(jobName) || jobName.length < 1) ? __commandDescription()
+    : `'${jobName}'`
+  );
 
-    map(commandOptions, (opts) => {
-      message += "\n  With some options.\n";
-      map(opts.ignoreReturnCode, (ignoreReturnCode) => {
-        message += `    Ignore Return Code: ${ignoreReturnCode ? 'true' : 'false'}\n`;
-      });
-      map(opts.cwd, (cwd) => {
-        message += `    Current Working Directory (CWD): ${cwd}\n`;
-      });
-      map(opts.env, (env) => {
-        message += `    Environment Variables:\n`
-        for (const [name, value] of Object.entries(env)) {
-          message += `      ${name}: ${value}\n`;
-        }
-      });
+  let startingMessage = `Executing ${jobNameForMessage}`;
+
+  map(commandOptions, (opts) => {
+    startingMessage += "\n  With some options.\n";
+    map(opts.ignoreReturnCode, (ignoreReturnCode) => {
+      startingMessage += `    Ignore Return Code: ${ignoreReturnCode ? 'true' : 'false'}\n`;
     });
+    map(opts.cwd, (cwd) => {
+      startingMessage += `    Current Working Directory (CWD): ${cwd}\n`;
+    });
+    map(opts.env, (env) => {
+      startingMessage += `    Environment Variables:\n`
+      for (const [name, value] of Object.entries(env)) {
+        startingMessage += `      ${name}: ${value}\n`;
+      }
+    });
+  });
 
-    await info(message);
-  }
+  await info(startingMessage);
 
   let stdoutString: string = '';
   let stderrString: string = '';
@@ -338,6 +338,8 @@ export async function exec(jobNameOrCommandName: string, ...otherArguments: unkn
   newOptions.listeners = listeners;
 
   const exitStatus = await actionsExec.exec(commandName, commandArgs, newOptions);
+
+  await info(`Finished ${jobNameForMessage}\n  With exit status: ${exitStatus.toString()}`, "✅");
 
   return {
     exitStatus: exitStatus,
