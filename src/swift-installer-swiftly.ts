@@ -97,11 +97,13 @@ export class Swiftly extends SwiftInstaller {
   }
 
   private static async _tearDown(): Promise<void> {
-    if (!Swiftly._doneSetUp) {
-      return;
-    }
-    await fs.promises.rm(Swiftly.homeDirectory, {recursive: true, force: true});
-    Swiftly._doneSetUp = false;
+    await navigator.locks.request("Swiftly._tearDown", async () => {
+      if (!Swiftly._doneSetUp) {
+        return;
+      }
+      await fs.promises.rm(Swiftly.homeDirectory, {recursive: true, force: true});
+      Swiftly._doneSetUp = false;
+    });
   }
 
   public constructor(version: string) {
