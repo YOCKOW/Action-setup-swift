@@ -344,7 +344,7 @@ export async function exec(jobNameOrCommandName: string, ...otherArguments: unkn
 
   const exitStatus = await actionsExec.exec(commandName, commandArgs, newOptions);
 
-  await info(`Finished ${jobNameForMessage}\n  With exit status: ${exitStatus.toString()}`, "✅");
+  await info(`Finished ${jobNameForMessage} (Exit status: ${exitStatus.toString()})`, "✅");
 
   return {
     exitStatus: exitStatus,
