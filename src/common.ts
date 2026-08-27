@@ -296,7 +296,7 @@ export async function exec(jobNameOrCommandName: string, ...otherArguments: unkn
   };
 
   const jobNameForMessage =(
-    (isUndefined(jobName) || jobName.length < 1) ? __commandDescription()
+    (isUndefined(jobName) || jobName.length < 1) ? ("`" + __commandDescription() + "`")
     : `'${jobName}'`
   );
 
