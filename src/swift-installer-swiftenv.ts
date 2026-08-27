@@ -6,14 +6,13 @@
  ************************************************************************************************ */
 
 import * as core from '@actions/core';
-import * as exec from '@actions/exec';
 import * as path from 'path';
 import * as installer from './swift-installer.js';
 import {
-  workingDirectory,
-  run,
-  execRun,
+  exec,
+  info,
   osIsDarwin,
+  workingDirectory,
 } from './common.js';
 import { XcodeInfo } from './xcode.js';
 
@@ -32,16 +31,18 @@ export class Swiftenv extends installer.SwiftInstaller {
 
   private static _doneSetUp: boolean = false;
   private static async _setUp(): Promise<void> {
-    if (Swiftenv._doneSetUp) {
-      return;
-    }
-    Swiftenv._doneSetUp = true;
-    await execRun(
-      'Download swiftenv...',
-      'git', ['clone', '--depth', '1', 'https://github.com/kylef/swiftenv.git', Swiftenv.directory]
-    );
-    core.addPath(Swiftenv.binDirectory);
-    core.exportVariable('SWIFTENV_ROOT', Swiftenv.directory);
+    await navigator.locks.request("Swiftenv._setUp", async () => {
+      if (Swiftenv._doneSetUp) {
+        return;
+      }
+      await exec(
+        'Download swiftenv',
+        'git', ['clone', '--depth', '1', 'https://github.com/kylef/swiftenv.git', Swiftenv.directory]
+      );
+      core.addPath(Swiftenv.binDirectory);
+      core.exportVariable('SWIFTENV_ROOT', Swiftenv.directory);
+      Swiftenv._doneSetUp = true;
+    });
   }
 
   public constructor(version: string) {
@@ -53,37 +54,38 @@ export class Swiftenv extends installer.SwiftInstaller {
   }
 
   public override async installSwift(): Promise<void> {
-    const version = this.swiftVersion;
-    const whereSwift = await XcodeInfo.forSwift(version);
-    if (whereSwift) {
-      core.info(version + ' is already installed.');
-      return;
-    }
+    await navigator.locks.request(`Swiftenv.installSwift ${this.swiftVersion}`, async () => {
+      const version = this.swiftVersion;
+      const whereSwift = await XcodeInfo.forSwift(version);
+      if (whereSwift) {
+        await info(version + ' is already installed.');
+        return;
+      }
 
-    const status = await exec.exec('swiftenv', ['prefix', version], {ignoreReturnCode: true});
-    if (status == 0) {
-      core.info(version + ' is already installed.');
-      return;
-    }
+      const status = (await exec('swiftenv', ['prefix', version], {ignoreReturnCode: true})).exitStatus;
+      if (status == 0) {
+        await info(version + ' is already installed.');
+        return;
+      }
 
-    const __download_swift = async (): Promise<number> => {
-      return await exec.exec(
-        Swiftenv.path,
-        ['install', version],
-        {
-          ignoreReturnCode: true,
-        }
-      );
-    };
+      const __download_swift = async (): Promise<number> => {
+        return (await exec(
+          Swiftenv.path,
+          ['install', version],
+          {
+            ignoreReturnCode: true,
+          }
+        )).exitStatus;
+      };
 
-    // NOTE: Sometimes `swiftenv install ...` fails owing to curl's error 18 on GitHub Actions.
-    const __retryableExitStatus = (status: number): boolean => {
-      return (status == 18);
-    };
-  
-    const commandDesc = `swiftenv install ${version}`;
-  
-    await run('Download Swift (via swiftenv)...', async () => {
+      // NOTE: Sometimes `swiftenv install ...` fails owing to curl's error 18 on GitHub Actions.
+      const __retryableExitStatus = (status: number): boolean => {
+        return (status == 18);
+      };
+    
+      const commandDesc = `swiftenv install ${version}`;
+    
+      await info('Download Swift (via swiftenv)');
       let retryCount = 0;
       const maxRetryCount = 5;
       while (true) {
@@ -91,7 +93,7 @@ export class Swiftenv extends installer.SwiftInstaller {
         if (retryCount > maxRetryCount) {
           throw new Error(`\`${commandDesc}\` failed too many times.`);
         }
-  
+
         const exitStatus = await __download_swift();
         if (exitStatus == 0) {
           break;
@@ -112,10 +114,10 @@ export class Swiftenv extends installer.SwiftInstaller {
     if (whereSwift instanceof XcodeInfo) {
       this.toolchain = await whereSwift.equivalentReleaseVersion() || whereSwift;
     } else {
-      await exec.exec(Swiftenv.path, ['global', version]);
-      await exec.exec(Swiftenv.path, ['versions']);
-      const whichResult = await execRun(
-        "Determine the path to 'swift'.",
+      await exec(Swiftenv.path, ['global', version]);
+      await exec(Swiftenv.path, ['versions']);
+      const whichResult = await exec(
+        "Determine the path to 'swift'",
         Swiftenv.path,
         ['which', 'swift']
       )

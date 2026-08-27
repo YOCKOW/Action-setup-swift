@@ -40,4 +40,10 @@ export class SwiftInstaller {
     }
   }
   /* eslint-enable @typescript-eslint/require-await */
+
+  /**
+   * Artifacts and necessary files will be removed.
+   * This method is for testing, so shouldn't be called in the production environment.
+   */
+  public async tearDown() {}
 }

@@ -20,7 +20,7 @@ jobs:
           - macOS-26
         swift-version:
           - "6.3.3"
-          - DEVELOPMENT-SNAPSHOT-2026-08-11-a
+          - DEVELOPMENT-SNAPSHOT-2026-08-21-a
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6

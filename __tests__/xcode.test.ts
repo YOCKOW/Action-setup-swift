@@ -5,17 +5,13 @@
      See "LICENSE.txt" for more information.
  ************************************************************************************************ */
 
-import {
-  describe,
-  test,
-  expect,
-} from 'vitest';
+/// <reference types="vitest/globals" />
 import * as common from '../src/common';
 import * as xcode from '../src/xcode';
 
 describe('Xcode Tests', () => {
   test('List of Applications', async () => {
-    let list = xcode.XcodeInfo.installedUnderApplicationsDirectory();
+    let list = await xcode.XcodeInfo.installedUnderApplicationsDirectory();
     if (common.osIsDarwin) {
       expect(list.size).toBeGreaterThan(0)
     } else {
