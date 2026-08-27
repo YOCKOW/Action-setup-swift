@@ -11,8 +11,9 @@ import * as core from '@actions/core';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { osIsDarwin, workingDirectory, download, exec, info, aptInstall } from "./common.js";
+import { osIsDarwin, workingDirectory, map, download, exec, info, aptInstall, extractSwiftVersionFromCommandOutput } from "./common.js";
 import { SwiftInstaller } from "./swift-installer.js";
+import { XcodeInfo } from './xcode.js';
 
 /**
  * An installer that uses 'swiftly' internally.
@@ -119,6 +120,42 @@ export class Swiftly extends SwiftInstaller {
       await info(`Download Swift ${this.swiftVersion} (via swiftly)`);
       await exec('swiftly', ['install', this.swiftVersion]);
     });
+  }
+
+  public override async switchSwift(): Promise<void> {
+    await exec(`swiftly`, ['use', '--global-default', '--assume-yes', this.swiftVersion]);
+    await exec('swiftly', ['link']);
+
+    const toolchainLocResult = await exec(
+      "Determine the path to 'swift'",
+      "swiftly",
+      ["use", "--print-location"]
+    )
+    const toolchainDirectory = toolchainLocResult.stdout;
+    const binDirectory = path.join(toolchainDirectory, '/usr/bin');
+    const swiftPath = path.join(binDirectory, '/swift');
+    this.toolchain = {
+      toolchainDirectory: toolchainDirectory,
+      binDirectory: binDirectory,
+      swiftPath: swiftPath,
+    }
+  }
+
+  public override async finalize(): Promise<void> {
+    await super.finalize();
+
+    if (osIsDarwin) {
+      const installedSwiftVersionCommandOutput = (await exec(
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this.toolchain!.swiftPath,
+        ["--version"]
+      )).stdout;
+      const installedSwiftVersion = extractSwiftVersionFromCommandOutput(installedSwiftVersionCommandOutput);
+      const activeXcode = (await map(installedSwiftVersion, async (version): Promise<XcodeInfo> => {
+        return await XcodeInfo.forSwift(version) ?? await XcodeInfo.latest();
+      })) ?? await XcodeInfo.latest();
+      await activeXcode.setSDKRootEnvironmentVariable();
+    }
   }
 
   public override async tearDown(): Promise<void> {

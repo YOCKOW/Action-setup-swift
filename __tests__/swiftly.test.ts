@@ -23,6 +23,10 @@ describe("`swiftly` installer tests", () => {
     try {
       await exec("swiftly", ["--version"]);
       await installer.installSwift();
+      await installer.switchSwift();
+      await installer.finalize();
+      await exec("which", ["swift"]);
+      await exec("swift", ["--version"]);
     } finally {
       await installer.tearDown();
     }

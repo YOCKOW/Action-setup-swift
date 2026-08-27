@@ -102,6 +102,11 @@ export function warn(message: string) {
   core.warning(`⚠️ ${message}`);
 }
 
+export function extractSwiftVersionFromCommandOutput(output: string): Optional<string> {
+  const result = (new RegExp('Swift version (\\d+(?:\\.\\d+)+)')).exec(output);
+  return result?.[1];
+}
+
 export type CommandResult = {
   exitStatus: number,
   stdout: string,

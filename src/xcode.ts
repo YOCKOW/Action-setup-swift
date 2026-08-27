@@ -11,7 +11,9 @@ import * as path from 'path';
 import * as semver from 'semver';
 import SemVer = semver.SemVer;
 import {
+  isUndefined,
   exec,
+  extractSwiftVersionFromCommandOutput,
   info,
   nil,
   Optional,
@@ -72,12 +74,12 @@ export class XcodeInfo {
           }
         );
         const swiftVersionString = swiftVersionResult.stdout.trim();
-        const result = (new RegExp('Swift version (\\d+(?:\\.\\d+)+)')).exec(swiftVersionString)
-        if (!result) {
+        const swiftVersion = extractSwiftVersionFromCommandOutput(swiftVersionString);
+        if (isUndefined(swiftVersion)) {
           throw Error(`Swift version cannot be detected for ${this.path}.`)
         }
-        this._swiftVersion = result[1]
-        await info(`Swift version is ${this._swiftVersion} for Xcode at ${this.path}`)
+        this._swiftVersion = swiftVersion;
+        await info(`Swift version is ${swiftVersion} for Xcode at ${this.path}`)
       }
       return this._swiftVersion;
     });
