@@ -17,18 +17,26 @@ describe("`swiftly` installer tests", () => {
       return;
     }
 
-    const installer = new Swiftly("6.3.3");
-    await installer.setUp();
+    const installers: Swiftly[] = [
+      new Swiftly("6.3.3"),
+      new Swiftly("DEVELOPMENT-SNAPSHOT-2026-08-21-a"),
+    ];
 
-    try {
-      await exec("swiftly", ["--version"]);
-      await installer.installSwift();
-      await installer.switchSwift();
-      await installer.finalize();
-      await exec("which", ["swift"]);
-      await exec("swift", ["--version"]);
-    } finally {
-      await installer.tearDown();
+    for (let ii = 0; ii < installers.length; ii++) {
+      const installer = installers[ii];
+      await installer.setUp();
+      try {
+        await exec("swiftly", ["--version"]);
+        await installer.installSwift();
+        await installer.switchSwift();
+        await installer.finalize();
+        await exec("which", ["swift"]);
+        await exec("swift", ["--version"]);
+      } finally {
+        if (ii == installers.length - 1) {
+          await installer.tearDown();
+        }
+      }
     }
   });
 });
