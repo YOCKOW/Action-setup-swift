@@ -9,7 +9,7 @@ import * as core from '@actions/core';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-import * as common from './common.js';
+import * as common from './common.js'; const nil = common.nil;
 import { XcodeInfo } from './xcode.js';
 import { SwiftInstaller } from './swift-installer.js';
 import { Swiftenv } from './swift-installer-swiftenv.js';
@@ -29,46 +29,49 @@ async function prepareDirectory(): Promise<void> {
 }
 
 const swiftVersion: () => Promise<string> = (function () {
-  let _swift_version: string | undefined = void(0);
+  let _swift_version: string | undefined = nil;
   return async (): Promise<string> => {
-    if (typeof _swift_version != "undefined") {
-      return _swift_version;
-    }
+    return navigator.locks.request("main.swiftVersion", async () => {
+      if (typeof _swift_version != "undefined") {
+        return _swift_version;
+      }
 
-    if (inputSwiftVersion) {
-      _swift_version = inputSwiftVersion;
-      return inputSwiftVersion;
-    }
+      if (inputSwiftVersion) {
+        await common.info(`Swift version ${inputSwiftVersion} (passed via input) will be used.`);
+        _swift_version = inputSwiftVersion;
+        return inputSwiftVersion;
+      }
 
-    const __checkSwiftVerionFile = async (dirPath: string): Promise<string | undefined> => {
-      const swiftVerionFilePath = path.join(dirPath, '.swift-version');
-      await common.info(`Read content of the file at "${swiftVerionFilePath}".`);
-      let fh: fs.FileHandle | undefined;
-      let content: string | undefined;
-      try {
-        fh = await fs.open(swiftVerionFilePath);
-        content = (await fh.readFile("utf8")).trim();
-        if (content) {
-          await common.info(`Swift version ${content} will be used.`);
+      const __checkSwiftVerionFile = async (dirPath: string): Promise<string | undefined> => {
+        const swiftVerionFilePath = path.join(dirPath, '.swift-version');
+        await common.info(`Read content of the file at "${swiftVerionFilePath}".`);
+        let fh: fs.FileHandle | undefined;
+        let content: string | undefined;
+        try {
+          fh = await fs.open(swiftVerionFilePath);
+          content = (await fh.readFile("utf8")).trim();
+          if (content) {
+            await common.info(`Swift version ${content} will be used.`);
+          }
+        } catch (error: unknown) {
+          core.debug(String(error));
+        } finally {
+          await fh?.close();
         }
-      } catch (error: unknown) {
-        core.debug(String(error));
-      } finally {
-        await fh?.close();
+        return content;
       }
-      return content;
-    }
 
-    let currentDirectoryForSwiftVersion = inputSwiftPackageDirectory;
-    while (currentDirectoryForSwiftVersion && currentDirectoryForSwiftVersion != "/") {
-      const swiftVersionFileContent = await __checkSwiftVerionFile(currentDirectoryForSwiftVersion);
-      if (typeof swiftVersionFileContent != "undefined") {
-        _swift_version = swiftVersionFileContent;
-        return swiftVersionFileContent;
+      let currentDirectoryForSwiftVersion = inputSwiftPackageDirectory;
+      while (currentDirectoryForSwiftVersion && currentDirectoryForSwiftVersion != "/") {
+        const swiftVersionFileContent = await __checkSwiftVerionFile(currentDirectoryForSwiftVersion);
+        if (typeof swiftVersionFileContent != "undefined") {
+          _swift_version = swiftVersionFileContent;
+          return swiftVersionFileContent;
+        }
+        currentDirectoryForSwiftVersion = path.dirname(currentDirectoryForSwiftVersion);
       }
-      currentDirectoryForSwiftVersion = path.dirname(currentDirectoryForSwiftVersion);
-    }
-    throw Error("Swift version is not specified.");
+      throw Error("Swift version is not specified.");
+    });
   };
 })();
 
