@@ -26,8 +26,21 @@ export class XcodeInfo {
   private _version: SemVer | null = null
   private _swiftVersion: string | null = null
 
-  constructor(path: string) {
+  private constructor(path: string) {
     this.path = path
+  }
+
+  private static _instances: Map<string /* path */, XcodeInfo> = new Map();
+  static async forPath(path: string): Promise<XcodeInfo> {
+    return await navigator.locks.request("XcodeInfo.forPath", (): XcodeInfo => {
+      const instance = this._instances.get(path);
+      if (!isUndefined(instance)) {
+        return instance;
+      }
+      const newInstance = new XcodeInfo(path);
+      this._instances.set(path, newInstance);
+      return newInstance;
+    });
   }
 
   public isEqualTo(other: XcodeInfo): boolean {
@@ -209,7 +222,7 @@ export declare namespace XcodeInfo {
 XcodeInfo.installedUnderApplicationsDirectory = (() => {
   let installedXcodeApplicationsUnderApplicationsDirectory: Optional<Map<XcodePath, XcodeInfo>> = nil;
   return async (): Promise<ReadonlyMap<XcodePath, XcodeInfo>> => {
-    return await navigator.locks.request("XcodeInfo.installedUnderApplicationsDirectory", () => {
+    return await navigator.locks.request("XcodeInfo.installedUnderApplicationsDirectory", async () => {
       if (typeof installedXcodeApplicationsUnderApplicationsDirectory != "undefined") {
         return installedXcodeApplicationsUnderApplicationsDirectory;
       }
@@ -225,7 +238,7 @@ XcodeInfo.installedUnderApplicationsDirectory = (() => {
       for (const entry of dirEntries) {
         if (entry.isDirectory() && (/^Xcode([^/])*.app/).test(entry.name)) {
           const xcodePath = path.join('/Applications', entry.name);
-          const xcodeInfo = new XcodeInfo(xcodePath);
+          const xcodeInfo = await XcodeInfo.forPath(xcodePath);
           result.set(xcodePath, xcodeInfo);
         }
       }
@@ -258,7 +271,7 @@ XcodeInfo.all = (() => {
       );
       const paths = commandResult.stdout.split(/\r\n|\r|\n/).map(path => path.trim()).filter(path => path != '');
       for (const path of paths) {
-        result.set(path, new XcodeInfo(path));
+        result.set(path, await XcodeInfo.forPath(path));
       }
       allXcodes = result;
       return result;
