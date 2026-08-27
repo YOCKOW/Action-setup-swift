@@ -13,8 +13,10 @@ import * as common from './common.js'; const nil = common.nil;
 import { XcodeInfo } from './xcode.js';
 import { SwiftInstaller } from './swift-installer.js';
 import { Swiftenv } from './swift-installer-swiftenv.js';
+import { Swiftly } from './swift-installer-swiftly.js';
 import { PreinstalledXcode } from './swift-installer-preinstalled-xcode.js';
 
+const inputSwiftInstaller: string = core.getInput("swift-installer") || common.defaultSwiftInstaller;
 const inputSwiftVersion: string = core.getInput('swift-version');
 const inputSwiftPackageDirectory: string = ((packageDirectory: string): string => {
   if (path.isAbsolute(packageDirectory)) {
@@ -84,8 +86,17 @@ async function swiftInstaller(version: string): Promise<SwiftInstaller> {
     await common.info(`Preinstalled Swift will be used in Xcode at ${properXcode.path}`);
     return new PreinstalledXcode(version, properXcode);
   }
-  await common.info(`swiftenv will be used to install Swift ${version}.`);
-  return new Swiftenv(version);
+
+  switch (inputSwiftInstaller.toLocaleLowerCase()) {
+  case "swiftenv":
+    await common.info(`swiftenv will be used to install Swift ${version}.`);
+    return new Swiftenv(version);
+  case "swiftly":
+    await common.info(`swiftly will be used to install Swift ${version}.`);
+    return new Swiftly(version);
+  default:
+    throw new Error(`Unexpected installer name: ${inputSwiftInstaller}`);
+  }
 }
 
 async function main(): Promise<void> {
@@ -101,4 +112,6 @@ async function main(): Promise<void> {
   await core.group("Finalizing Installer", async () => installer.finalize());
 }
 
-main().catch((error: unknown) => { core.setFailed(String(error)); })
+main().catch((error: unknown) => {
+  core.setFailed((error instanceof Error) ? error : String(error));
+});

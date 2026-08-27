@@ -17,6 +17,9 @@ import * as os from 'os';
 export type Optional<Wrapped> = Wrapped | undefined;
 export const nil = void 0;
 
+/** Default installer. */
+export const defaultSwiftInstaller: string = "swiftenv";
+
 /** Default path to the Swift package directory. */
 export const defaultSwiftPackageDirectory: string = '.';
 
