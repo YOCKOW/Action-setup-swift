@@ -88,7 +88,7 @@ export function map<T, U>(optionalValue: Optional<T>, transform: (wrapped: T) =>
   return transform(optionalValue);
 }
 
-export async function info(message: string, marker: string = "ℹ️") {
+export async function info(message: string, marker: "ℹ️" | "✅" = "ℹ️") {
   await navigator.locks.request("common.info", () => {
     const lines = message.trimEnd().split(/\r|\n|\r\n/);
     core.info(`${marker} ${lines[0]}`);
@@ -448,6 +448,7 @@ export async function download(url: URL, path: string, maxRedirectCount: number 
     });
     request.end();
   });
+  await info(`File has been downloaded from ${finalDestination.toString()}`, "✅");
 }
 
 
