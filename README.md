@@ -3,6 +3,12 @@
 This action sets up a Swift environment using [swiftenv](https://github.com/kylef/swiftenv)(default) or [swiftly](https://github.com/swiftlang/swiftly).
 
 
+## Supported OSes (runners)
+
+- Ubuntu
+- macOS
+
+
 # Usage
 
 See [action.yml](action.yml)
@@ -40,7 +46,7 @@ You can use `swiftly` to install Swift passing 'swiftly' to `swift-installer` in
 ```yaml
 steps:
 - uses: actions/checkout@v7
-- uses: YOCKOW/Action-setup-swift@v1
+- uses: YOCKOW/Action-setup-swift@v1.2
   with:
     swift-installer: swiftly
     swift-version: "DEVELOPMENT-SNAPSHOT-2026-08-21-a" # This value is passed to swiftly without modification.
