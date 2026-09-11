@@ -12,18 +12,20 @@ import * as os from 'os';
 import * as path from 'path';
 import * as common from '../src/common';
 
+const httpMockServer = "https://httpbin.org";
+
 describe("Common tool tests", () => {
   test('Response Header', async () => {
-    const normalHeader = await common.responseHeader(new URL("https://httpcan.org/get"));
+    const normalHeader = await common.responseHeader(new URL(`${httpMockServer}/get`));
     expect(normalHeader.statusCode).toBe(200);
     
-    const redirectHeader = await common.responseHeader(new URL("https://httpcan.org/redirect/5"));
+    const redirectHeader = await common.responseHeader(new URL(`${httpMockServer}/redirect/5`));
     expect(redirectHeader.statusCode).toSatisfy((value) => (300 <= value && value < 400));
   });
 
   test('Redirect', async () => {
-    const redirectedURL = await common.redirectedURL(new URL("https://httpcan.org/redirect/5"));
-    expect(redirectedURL).toStrictEqual(new URL("https://httpcan.org/get"));
+    const redirectedURL = await common.redirectedURL(new URL(`${httpMockServer}/redirect/5`));
+    expect(redirectedURL).toStrictEqual(new URL(`${httpMockServer}/get`));
     expect(await common.redirectedURL(redirectedURL)).toStrictEqual(redirectedURL);
   })
 
@@ -32,7 +34,7 @@ describe("Common tool tests", () => {
     await fs.promises.mkdir(tmpDirPath);
     try {
       const localFilePath = path.join(tmpDirPath, crypto.randomUUID());
-      await common.download(new URL("https://httpcan.org/html"), localFilePath);
+      await common.download(new URL(`${httpMockServer}/html`), localFilePath);
       const fileContent = await fs.promises.readFile(localFilePath, {encoding: 'utf-8'});
       expect(fileContent).contains("<html>");
     } finally {
