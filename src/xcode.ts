@@ -205,10 +205,8 @@ export class XcodeInfo {
   }
 
   public async activate(): Promise<void> {
-    await Promise.all([
-      this.activateDeveloperDirectory(),
-      this.setSDKRootEnvironmentVariable(),
-    ])
+    await this.activateDeveloperDirectory();
+    await this.setSDKRootEnvironmentVariable();
   }
 }
 
