@@ -18,8 +18,8 @@ describe("`swiftly` installer tests", () => {
     }
 
     const installers: Swiftly[] = [
-      new Swiftly("6.3.3"),
-      new Swiftly("DEVELOPMENT-SNAPSHOT-2026-08-21-a"),
+      new Swiftly("6.4.0"),
+      new Swiftly("DEVELOPMENT-SNAPSHOT-2026-09-21-a"),
     ];
 
     for (let ii = 0; ii < installers.length; ii++) {
