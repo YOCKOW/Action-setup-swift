@@ -20,7 +20,7 @@ steps:
 - uses: actions/checkout@v7
 - uses: YOCKOW/Action-setup-swift@v1
   with:
-    swift-version: '6.3.3' # This value is passed to swiftenv without modification.
+    swift-version: '6.4.0' # This value is passed to swiftenv without modification.
 - run: swift test
 ```
 
@@ -49,7 +49,7 @@ steps:
 - uses: YOCKOW/Action-setup-swift@v1.2
   with:
     swift-installer: swiftly
-    swift-version: "DEVELOPMENT-SNAPSHOT-2026-08-21-a" # This value is passed to swiftly without modification.
+    swift-version: "DEVELOPMENT-SNAPSHOT-2026-09-21-a" # This value is passed to swiftly without modification.
     # Other values are also available such as:
     #    "latest"
     #    "main-snapshot"

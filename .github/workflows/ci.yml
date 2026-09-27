@@ -22,8 +22,8 @@ jobs:
           - swiftenv
           - swiftly
         swift-version:
-          - "6.3.3"
-          - DEVELOPMENT-SNAPSHOT-2026-08-21-a
+          - "6.4.0"
+          - DEVELOPMENT-SNAPSHOT-2026-09-21-a
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
