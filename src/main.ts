@@ -110,6 +110,9 @@ async function main(): Promise<void> {
   await core.group("Installing Swift", async () => installer.installSwift());
   await core.group("Switching Swift", async () => installer.switchSwift());
   await core.group("Finalizing Installer", async () => installer.finalize());
+
+  await common.info(`Swift version ${detectedSwiftVersion} has been installed.`, "✅");
+  await common.exec("swift", ["--version"]);
 }
 
 main().catch((error: unknown) => {
