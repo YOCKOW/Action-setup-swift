@@ -112,6 +112,7 @@ export class Swiftenv extends installer.SwiftInstaller {
     const version = this.swiftVersion;
     const whereSwift = await XcodeInfo.forSwift(version);
     if (whereSwift instanceof XcodeInfo) {
+      await whereSwift.activateDeveloperDirectory();
       this.toolchain = await whereSwift.equivalentReleaseVersion() || whereSwift;
     } else {
       await exec(Swiftenv.path, ['global', version]);
@@ -140,7 +141,7 @@ export class Swiftenv extends installer.SwiftInstaller {
         (this.toolchain instanceof XcodeInfo) ? this.toolchain
         : await XcodeInfo.latest()
       );
-      await activeXcode.activate();
+      await activeXcode.setSDKRootEnvironmentVariable();
     }
   }
 }

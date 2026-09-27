@@ -203,11 +203,6 @@ export class XcodeInfo {
     );
     core.exportVariable('SDKROOT', sdkRootResult.stdout.trim());
   }
-
-  public async activate(): Promise<void> {
-    await this.activateDeveloperDirectory();
-    await this.setSDKRootEnvironmentVariable();
-  }
 }
 
 export declare namespace XcodeInfo {

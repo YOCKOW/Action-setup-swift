@@ -5,6 +5,8 @@
      See "LICENSE.txt" for more information.
  ************************************************************************************************ */
 
+import * as core from '@actions/core';
+
 export interface ActiveToolchain {
   readonly toolchainDirectory: string;
   readonly binDirectory: string;
@@ -38,6 +40,7 @@ export class SwiftInstaller {
     if (!this.toolchain) {
       throw new Error("`toolchain` is undefined.");
     }
+    core.addPath(this.toolchain.binDirectory);
   }
   /* eslint-enable @typescript-eslint/require-await */
 

@@ -18,7 +18,8 @@ export class PreinstalledXcode extends installer.SwiftInstaller {
   }
 
   public override async switchSwift(): Promise<void> {
-    await this.toolchain.activate();
+    await this.toolchain.activateDeveloperDirectory();
+    await this.toolchain.setSDKRootEnvironmentVariable();
   }
 
   public override async finalize(): Promise<void> {
