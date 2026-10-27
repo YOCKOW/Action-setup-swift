@@ -114,7 +114,7 @@ export class XcodeInfo {
     return path.join(this.binDirectory, 'swift');
   }
 
-  private static readonly _betaRegex = new RegExp('^(/.+/Xcode[^/]*)_beta.app');
+  private static readonly _betaRegex = new RegExp('^(/.+/Xcode[^/]*)_(?:beta(?:_[0-9]+)?|Release_Candidate).app', 'i');
 
   /** @returns `true` if Xcode _may be_ beta. */
   public async isBeta(): Promise<boolean> {
